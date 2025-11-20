@@ -1,0 +1,81 @@
+@plugin.ts @plugin.utils.ts 这两个实现还不错，请你仿照着这个样子，帮我生成我还需要的agent、工作流和知识库相关实体和基本方法，跟目前的实现一样，请严格按照我给出的属性来构建，不需要多余的词条：
+@Entity
+@Table(name = "agent")
+public class Agent {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String name;
+    private String description;
+    @Column(columnDefinition = "TEXT")
+    private String systemPrompt;  // 系统提示词
+    @Column(columnDefinition = "TEXT")
+    private String userPromptTemplate;  // 用户提示词模板
+    @Column(columnDefinition = "JSON")
+    private String modelConfig;  // 模型配置（JSON字符串）
+    private Long workflowId;  // 关联工作流
+    @Column(columnDefinition = "JSON")
+    private String knowledgeBaseIds;  // 关联知识库ID列表
+    @Column(columnDefinition = "JSON")
+    private String pluginIds;  // 关联插件ID列表
+    private String status;  // 状态：draft/published
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
+
+
+
+@Entity
+@Table(name = "workflow")
+public class Workflow {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String name;
+    private String description;
+    @Column(columnDefinition = "JSON")
+    private String nodes;  // 节点列表（JSON数组）
+    @Column(columnDefinition = "JSON")
+    private String edges;  // 边列表（JSON数组）
+    @Column(columnDefinition = "JSON")
+    private String config;  // 工作流配置（JSON对象）
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}
+
+
+
+@Entity
+@Table(name = "knowledge_base")
+public class KnowledgeBase {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String name;
+    private String description;
+    private String vectorDbType;  // chroma/milvus
+    private Integer chunkSize;
+    private Integer chunkOverlap;
+    private LocalDateTime createdAt;
+}
+
+@Entity
+@Table(name = "document")
+public class Document {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private Long knowledgeBaseId;
+    private String filename;
+    @Column(columnDefinition = "TEXT")
+    private String content;
+    @Column(columnDefinition = "JSON")
+    private String chunks;  // 分块内容（JSON数组）
+    @Column(columnDefinition = "JSON")
+    private String vectorIds;  // 向量ID列表（JSON数组）
+    private LocalDateTime uploadedAt;
+}
