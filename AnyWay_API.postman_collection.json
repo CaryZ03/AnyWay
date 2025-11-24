@@ -1,0 +1,425 @@
+{
+  "info": {
+    "name": "AnyWay API Collection",
+    "description": "AI智能体创作平台完整API接口集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "健康检查",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "智能体管理",
+      "item": [
+        {
+          "name": "获取智能体列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", ""]
+            }
+          }
+        },
+        {
+          "name": "创建智能体",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试智能体\",\n  \"description\": \"这是一个测试智能体\",\n  \"system_prompt\": \"你是一个友好的AI助手\",\n  \"model_config\": {\n    \"model\": \"gpt-3.5-turbo\",\n    \"temperature\": 0.7\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", ""]
+            }
+          }
+        },
+        {
+          "name": "获取智能体详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "更新智能体",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"更新后的描述\",\n  \"system_prompt\": \"你是一个更加友好的AI助手\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "发布智能体",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/publish/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "publish", ""]
+            }
+          }
+        },
+        {
+          "name": "测试智能体对话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"你好，请介绍一下自己\",\n  \"context\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/test/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "test", ""]
+            }
+          }
+        },
+        {
+          "name": "与智能体对话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"今天天气怎么样？\",\n  \"context\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/chat/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "chat", ""]
+            }
+          }
+        },
+        {
+          "name": "删除智能体",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "工作流管理",
+      "item": [
+        {
+          "name": "获取工作流列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", ""]
+            }
+          }
+        },
+        {
+          "name": "创建工作流",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试工作流\",\n  \"description\": \"这是一个测试工作流\",\n  \"definition\": {\n    \"nodes\": [\n      {\n        \"id\": \"node1\",\n        \"type\": \"start\",\n        \"name\": \"开始节点\"\n      },\n      {\n        \"id\": \"node2\",\n        \"type\": \"llm\",\n        \"name\": \"LLM节点\",\n        \"config\": {\n          \"model\": \"gpt-3.5-turbo\"\n        }\n      }\n    ],\n    \"edges\": [\n      {\n        \"source\": \"node1\",\n        \"target\": \"node2\"\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", ""]
+            }
+          }
+        },
+        {
+          "name": "获取工作流详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "执行工作流",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input_data\": {\n    \"message\": \"测试输入\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/1/execute/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", "1", "execute", ""]
+            }
+          }
+        },
+        {
+          "name": "删除工作流",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "知识库管理",
+      "item": [
+        {
+          "name": "获取知识库列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", ""]
+            }
+          }
+        },
+        {
+          "name": "创建知识库",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试知识库\",\n  \"description\": \"这是一个测试知识库\",\n  \"embedding_model\": \"text-embedding-ada-002\",\n  \"chunk_size\": 500,\n  \"chunk_overlap\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", ""]
+            }
+          }
+        },
+        {
+          "name": "获取知识库详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "删除知识库",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "插件管理",
+      "item": [
+        {
+          "name": "获取插件列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", ""]
+            }
+          }
+        },
+        {
+          "name": "注册插件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试插件\",\n  \"description\": \"这是一个测试插件\",\n  \"base_url\": \"https://api.example.com\",\n  \"openapi_spec\": {\n    \"openapi\": \"3.0.0\",\n    \"info\": {\n      \"title\": \"Test Plugin API\",\n      \"version\": \"1.0.0\"\n    },\n    \"paths\": {\n      \"/test\": {\n        \"get\": {\n          \"summary\": \"Test endpoint\",\n          \"responses\": {\n            \"200\": {\n              \"description\": \"Success\"\n            }\n          }\n        }\n      }\n    }\n  },\n  \"auth_config\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", ""]
+            }
+          }
+        },
+        {
+          "name": "获取插件详情",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "启用插件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/1/enable/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", "1", "enable", ""]
+            }
+          }
+        },
+        {
+          "name": "删除插件",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", "1", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "LLM服务",
+      "item": [
+        {
+          "name": "LLM聊天",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"你是一个友好的AI助手\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"你好，请介绍一下自己\"\n    }\n  ],\n  \"model\": \"gpt-3.5-turbo\",\n  \"temperature\": 0.7\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/llm/chat/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "llm", "chat", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

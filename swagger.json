@@ -1,0 +1,1181 @@
+swagger: '2.0'
+info:
+  title: AI Agent Platform API
+  description: AI智能体创作平台 RESTful API文档
+  termsOfService: https://www.example.com/terms/
+  contact:
+    email: contact@example.com
+  license:
+    name: MIT License
+  version: v1.0.0
+host: localhost:8000
+schemes:
+- http
+basePath: /api/v1
+consumes:
+- application/json
+produces:
+- application/json
+securityDefinitions:
+  Basic:
+    type: basic
+security:
+- Basic: []
+paths:
+  /agents/:
+    get:
+      operationId: agents_list
+      summary: 获取智能体列表
+      description: 获取所有未删除的智能体列表
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/AgentList'
+      tags:
+      - agents
+    post:
+      operationId: agents_create
+      summary: 创建智能体
+      description: 创建新的智能体
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Agent'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Agent'
+      tags:
+      - agents
+    parameters: []
+  /agents/{id}/:
+    get:
+      operationId: agents_read
+      summary: 获取智能体详情
+      description: 根据ID获取智能体详细信息
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Agent'
+      tags:
+      - agents
+    put:
+      operationId: agents_update
+      summary: 更新智能体
+      description: 更新智能体信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Agent'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Agent'
+      tags:
+      - agents
+    patch:
+      operationId: agents_partial_update
+      summary: 智能体视图集
+      description: 提供智能体的CRUD操作
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Agent'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Agent'
+      tags:
+      - agents
+    delete:
+      operationId: agents_delete
+      summary: 删除智能体
+      description: 逻辑删除智能体
+      parameters: []
+      responses:
+        '200':
+          description: 删除成功
+      tags:
+      - agents
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 智能体.
+      required: true
+      type: integer
+  /agents/{id}/chat/:
+    post:
+      operationId: agents_chat
+      summary: 与智能体对话
+      description: 与已发布的智能体进行对话
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/AgentChatRequest'
+      responses:
+        '200':
+          description: 对话成功
+          schema:
+            $ref: '#/definitions/Conversation'
+      tags:
+      - agents
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 智能体.
+      required: true
+      type: integer
+  /agents/{id}/publish/:
+    post:
+      operationId: agents_publish
+      summary: 发布智能体
+      description: 将智能体状态从草稿改为已发布
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Agent'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Agent'
+      tags:
+      - agents
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 智能体.
+      required: true
+      type: integer
+  /agents/{id}/test/:
+    post:
+      operationId: agents_test
+      summary: 测试智能体
+      description: 发送测试消息给智能体
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/AgentChatRequest'
+      responses:
+        '200':
+          description: 测试成功
+          schema:
+            $ref: '#/definitions/Conversation'
+      tags:
+      - agents
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 智能体.
+      required: true
+      type: integer
+  /knowledge/:
+    get:
+      operationId: knowledge_list
+      summary: 获取知识库列表
+      description: 获取所有未删除的知识库列表
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/KnowledgeBase'
+      tags:
+      - knowledge
+    post:
+      operationId: knowledge_create
+      summary: 创建知识库
+      description: 创建新的知识库
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/KnowledgeBase'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/KnowledgeBase'
+      tags:
+      - knowledge
+    parameters: []
+  /knowledge/{id}/:
+    get:
+      operationId: knowledge_read
+      summary: 获取知识库详情
+      description: 根据ID获取知识库详细信息
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/KnowledgeBase'
+      tags:
+      - knowledge
+    put:
+      operationId: knowledge_update
+      summary: 更新知识库
+      description: 更新知识库信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/KnowledgeBase'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/KnowledgeBase'
+      tags:
+      - knowledge
+    patch:
+      operationId: knowledge_partial_update
+      summary: 知识库视图集
+      description: 提供知识库的CRUD操作
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/KnowledgeBase'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/KnowledgeBase'
+      tags:
+      - knowledge
+    delete:
+      operationId: knowledge_delete
+      summary: 删除知识库
+      description: 逻辑删除知识库
+      parameters: []
+      responses:
+        '200':
+          description: 删除成功
+      tags:
+      - knowledge
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 知识库.
+      required: true
+      type: integer
+  /knowledge/{id}/documents/:
+    get:
+      operationId: knowledge_documents
+      summary: 获取文档列表
+      description: 获取知识库中的所有文档
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Document'
+      tags:
+      - knowledge
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 知识库.
+      required: true
+      type: integer
+  /knowledge/{id}/search/:
+    post:
+      operationId: knowledge_search
+      summary: 搜索知识库
+      description: 在知识库中搜索相关内容
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/SearchRequest'
+      responses:
+        '200':
+          description: 搜索成功
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Document'
+      tags:
+      - knowledge
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 知识库.
+      required: true
+      type: integer
+  /knowledge/{id}/upload/:
+    post:
+      operationId: knowledge_upload
+      summary: 上传文档
+      description: 上传文档到知识库
+      parameters:
+      - name: file
+        in: formData
+        description: 文档文件（TXT或Markdown）
+        required: true
+        type: file
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Document'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - knowledge
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 知识库.
+      required: true
+      type: integer
+  /llm/chat/:
+    post:
+      operationId: llm_chat_create
+      summary: LLM聊天
+      description: 调用LLM进行对话
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/LLMChatRequest'
+      responses:
+        '200':
+          description: 聊天成功
+          schema:
+            type: object
+            properties:
+              reply:
+                description: 模型回复
+                type: string
+      tags:
+      - llm
+    parameters: []
+  /plugins/:
+    get:
+      operationId: plugins_list
+      summary: 获取插件列表
+      description: 获取所有未删除的插件列表
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/PluginList'
+      tags:
+      - plugins
+    post:
+      operationId: plugins_create
+      summary: 注册插件
+      description: 注册新的插件
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Plugin'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    parameters: []
+  /plugins/{id}/:
+    get:
+      operationId: plugins_read
+      summary: 获取插件详情
+      description: 根据ID获取插件详细信息
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    put:
+      operationId: plugins_update
+      summary: 更新插件
+      description: 更新插件信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Plugin'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    patch:
+      operationId: plugins_partial_update
+      summary: 插件视图集
+      description: 提供插件的CRUD操作
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Plugin'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    delete:
+      operationId: plugins_delete
+      summary: 删除插件
+      description: 逻辑删除插件
+      parameters: []
+      responses:
+        '200':
+          description: 删除成功
+      tags:
+      - plugins
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 插件.
+      required: true
+      type: integer
+  /plugins/{id}/disable/:
+    post:
+      operationId: plugins_disable
+      summary: 禁用插件
+      description: 禁用指定的插件
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Plugin'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 插件.
+      required: true
+      type: integer
+  /plugins/{id}/enable/:
+    post:
+      operationId: plugins_enable
+      summary: 启用插件
+      description: 启用指定的插件
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Plugin'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Plugin'
+      tags:
+      - plugins
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 插件.
+      required: true
+      type: integer
+  /workflows/:
+    get:
+      operationId: workflows_list
+      summary: 获取工作流列表
+      description: 获取所有未删除的工作流列表
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/WorkflowList'
+      tags:
+      - workflows
+    post:
+      operationId: workflows_create
+      summary: 创建工作流
+      description: 创建新的工作流
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Workflow'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Workflow'
+      tags:
+      - workflows
+    parameters: []
+  /workflows/{id}/:
+    get:
+      operationId: workflows_read
+      summary: 获取工作流详情
+      description: 根据ID获取工作流详细信息
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Workflow'
+      tags:
+      - workflows
+    put:
+      operationId: workflows_update
+      summary: 更新工作流
+      description: 更新工作流信息
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Workflow'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Workflow'
+      tags:
+      - workflows
+    patch:
+      operationId: workflows_partial_update
+      summary: 工作流视图集
+      description: 提供工作流的CRUD操作和执行功能
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Workflow'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Workflow'
+      tags:
+      - workflows
+    delete:
+      operationId: workflows_delete
+      summary: 删除工作流
+      description: 逻辑删除工作流
+      parameters: []
+      responses:
+        '200':
+          description: 删除成功
+      tags:
+      - workflows
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 工作流.
+      required: true
+      type: integer
+  /workflows/{id}/execute/:
+    post:
+      operationId: workflows_execute
+      summary: 执行工作流
+      description: 执行指定的工作流
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/WorkflowExecuteRequest'
+      responses:
+        '200':
+          description: 执行成功
+          schema:
+            $ref: '#/definitions/WorkflowExecution'
+      tags:
+      - workflows
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 工作流.
+      required: true
+      type: integer
+  /workflows/{id}/executions/:
+    get:
+      operationId: workflows_executions
+      summary: 获取执行历史
+      description: 获取工作流的执行历史记录
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/WorkflowExecution'
+      tags:
+      - workflows
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this 工作流.
+      required: true
+      type: integer
+definitions:
+  AgentList:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 智能体名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      status:
+        title: 状态
+        type: string
+        enum:
+        - draft
+        - published
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  Agent:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 智能体名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      system_prompt:
+        title: 系统提示词
+        type: string
+        x-nullable: true
+      user_prompt_template:
+        title: 用户提示词模板
+        type: string
+        x-nullable: true
+      model_config:
+        title: 模型配置
+        type: object
+      workflow_id:
+        title: 关联工作流ID
+        type: integer
+        maximum: 9223372036854775807
+        minimum: -9223372036854775808
+        x-nullable: true
+      knowledge_base_ids:
+        title: 关联知识库ID列表
+        type: object
+      plugin_ids:
+        title: 关联插件ID列表
+        type: object
+      status:
+        title: 状态
+        type: string
+        enum:
+        - draft
+        - published
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  AgentChatRequest:
+    required:
+    - message
+    type: object
+    properties:
+      message:
+        title: Message
+        description: 用户消息
+        type: string
+        minLength: 1
+      context:
+        title: Context
+        description: 上下文信息
+        type: object
+        default: {}
+  Conversation:
+    required:
+    - agent
+    - user_message
+    - assistant_message
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      agent:
+        title: 智能体
+        type: integer
+      user_message:
+        title: 用户消息
+        type: string
+        minLength: 1
+      assistant_message:
+        title: 助手回复
+        type: string
+        minLength: 1
+      context:
+        title: 上下文信息
+        type: object
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+  KnowledgeBase:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 知识库名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      embedding_model:
+        title: 嵌入模型
+        type: string
+        maxLength: 100
+        minLength: 1
+      document_count:
+        title: Document count
+        type: string
+        readOnly: true
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  Document:
+    required:
+    - knowledge_base
+    - filename
+    - file_type
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      knowledge_base:
+        title: 知识库
+        type: integer
+      filename:
+        title: 文件名
+        type: string
+        maxLength: 255
+        minLength: 1
+      file_type:
+        title: 文件类型
+        type: string
+        maxLength: 50
+        minLength: 1
+      file_size:
+        title: 文件大小（字节）
+        type: integer
+        readOnly: true
+      status:
+        title: 处理状态
+        type: string
+        enum:
+        - pending
+        - processing
+        - completed
+        - failed
+        readOnly: true
+      error_message:
+        title: 错误信息
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      chunk_count:
+        title: 分块数量
+        type: integer
+        readOnly: true
+      uploaded_at:
+        title: 上传时间
+        type: string
+        format: date-time
+        readOnly: true
+      processed_at:
+        title: 处理时间
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+  SearchRequest:
+    required:
+    - query
+    type: object
+    properties:
+      query:
+        title: Query
+        description: 搜索查询
+        type: string
+        minLength: 1
+      top_k:
+        title: Top k
+        description: 返回结果数量
+        type: integer
+        default: 5
+        maximum: 20
+        minimum: 1
+  LLMChatRequest:
+    required:
+    - messages
+    type: object
+    properties:
+      messages:
+        description: 消息列表
+        type: array
+        items:
+          type: object
+          additionalProperties:
+            type: string
+            x-nullable: true
+      model:
+        title: Model
+        description: 模型名称
+        type: string
+        default: gpt-3.5-turbo
+        minLength: 1
+      temperature:
+        title: Temperature
+        description: 温度参数
+        type: number
+        default: 0.7
+        maximum: 2
+        minimum: 0
+  PluginList:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 插件名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      status:
+        title: 状态
+        type: string
+        enum:
+        - enabled
+        - disabled
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  Plugin:
+    required:
+    - name
+    - openapi_spec
+    - base_url
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 插件名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      openapi_spec:
+        title: OpenAPI规范
+        type: object
+      base_url:
+        title: 基础URL
+        type: string
+        maxLength: 500
+        minLength: 1
+      auth_config:
+        title: 认证配置
+        type: object
+      status:
+        title: 状态
+        type: string
+        enum:
+        - enabled
+        - disabled
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  WorkflowList:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 工作流名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      status:
+        title: 状态
+        type: string
+        enum:
+        - draft
+        - active
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  Workflow:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: 工作流名称
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: 描述
+        type: string
+        x-nullable: true
+      definition:
+        title: 工作流定义（节点和连线）
+        type: object
+      status:
+        title: 状态
+        type: string
+        enum:
+        - draft
+        - active
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: 更新时间
+        type: string
+        format: date-time
+        readOnly: true
+  WorkflowExecuteRequest:
+    required:
+    - input_data
+    type: object
+    properties:
+      input_data:
+        title: Input data
+        description: 输入数据
+        type: object
+  WorkflowExecution:
+    required:
+    - workflow
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      workflow:
+        title: 工作流
+        type: integer
+      input_data:
+        title: 输入数据
+        type: object
+      output_data:
+        title: 输出数据
+        type: object
+        readOnly: true
+      status:
+        title: 执行状态
+        type: string
+        enum:
+        - pending
+        - running
+        - completed
+        - failed
+        readOnly: true
+      node_status:
+        title: 节点执行状态
+        type: object
+        readOnly: true
+      error_message:
+        title: 错误信息
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      started_at:
+        title: 开始时间
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      completed_at:
+        title: 完成时间
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      created_at:
+        title: 创建时间
+        type: string
+        format: date-time
+        readOnly: true
