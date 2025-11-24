@@ -1,290 +1,250 @@
-# AI智能体创作平台 - 后端服务
+# AnyWay 后端本地开发指南 (Windows)
 
-基于Django + Django REST Framework的AI智能体创作平台后端服务。
+本指南仅针对 **backend 目录 (Django 后端)** 的本地开发和启动，假设你在 **Windows** 环境下开发。
 
-## 技术栈
+---
 
-- **框架**: Django 5.0.1
-- **API**: Django REST Framework 3.14.0
-- **数据库**: MySQL 8.0
-- **缓存**: Redis 7
-- **任务队列**: Celery
-- **API文档**: drf-yasg (Swagger)
-- **AI集成**: OpenAI, LangChain
+## 1. 环境准备
 
-## 项目结构
+- 操作系统：Windows 10/11
+- 必备软件：
+  - Python 3.11+（并加入环境变量 PATH）
+  - Docker Desktop（用于 MySQL / Redis）
+  - Git（可选，用于拉取代码）
 
-```
-backend/
-├── aiagent/              # Django项目配置
-│   ├── settings.py       # 配置文件
-│   ├── urls.py          # 主路由
-│   ├── wsgi.py          # WSGI入口
-│   └── celery.py        # Celery配置
-├── apps/                # 应用模块
-│   ├── agent/           # 智能体管理
-│   ├── workflow/        # 工作流管理
-│   ├── knowledge/       # 知识库管理
-│   ├── plugin/          # 插件管理
-│   └── llm/             # LLM服务集成
-├── utils/               # 工具类
-│   ├── response.py      # 统一响应格式
-│   └── exception_handler.py  # 异常处理
-├── scripts/             # 脚本文件
-│   └── init.sql         # 数据库初始化
-├── manage.py            # Django管理命令
-├── requirements.txt     # Python依赖
-├── Dockerfile           # Docker镜像构建
-└── .env.example         # 环境变量示例
+推荐但可选：
+- PowerShell 7+
+- 虚拟环境工具：`python -m venv`
+
+目录结构（后端相关）：
+
+```text
+AnyWay/
+├── docker-compose.yml     # 启动 MySQL / Redis
+└── backend/
+    ├── aiagent/           # Django 项目配置
+    ├── apps/              # 业务应用 (agent / workflow / knowledge / plugin / llm)
+    ├── manage.py
+    ├── requirements.txt
+    ├── start.ps1          # 本地启动脚本 (本文件一起创建)
+    └── README.md          # 当前说明文档
 ```
 
-## 核心功能模块
+---
 
-### 1. 智能体管理 (apps/agent)
-- ✅ 创建、查看、编辑、删除智能体
-- ✅ 智能体发布
-- ✅ 智能体测试
-- ✅ 智能体对话
-- ✅ 对话历史记录
+## 2. 配置环境变量
 
-**API端点**:
-- `GET /api/v1/agents/` - 获取智能体列表
-- `POST /api/v1/agents/` - 创建智能体
-- `GET /api/v1/agents/{id}/` - 获取智能体详情
-- `PUT /api/v1/agents/{id}/` - 更新智能体
-- `DELETE /api/v1/agents/{id}/` - 删除智能体
-- `POST /api/v1/agents/{id}/publish/` - 发布智能体
-- `POST /api/v1/agents/{id}/test/` - 测试智能体
-- `POST /api/v1/agents/{id}/chat/` - 与智能体对话
-
-### 2. 工作流管理 (apps/workflow)
-- ✅ 创建、查看、编辑、删除工作流
-- ✅ 工作流执行引擎
-- ✅ 执行历史记录
-- ✅ DAG验证
-
-**API端点**:
-- `GET /api/v1/workflows/` - 获取工作流列表
-- `POST /api/v1/workflows/` - 创建工作流
-- `GET /api/v1/workflows/{id}/` - 获取工作流详情
-- `PUT /api/v1/workflows/{id}/` - 更新工作流
-- `DELETE /api/v1/workflows/{id}/` - 删除工作流
-- `POST /api/v1/workflows/{id}/execute/` - 执行工作流
-- `GET /api/v1/workflows/{id}/executions/` - 获取执行历史
-
-### 3. 知识库管理 (apps/knowledge)
-- ✅ 创建、查看、编辑、删除知识库
-- ✅ 文档上传（TXT, Markdown）
-- ✅ 文档分块处理
-- ✅ 向量化（待实现）
-- ✅ 知识库搜索（待实现）
-
-**API端点**:
-- `GET /api/v1/knowledge/` - 获取知识库列表
-- `POST /api/v1/knowledge/` - 创建知识库
-- `GET /api/v1/knowledge/{id}/` - 获取知识库详情
-- `PUT /api/v1/knowledge/{id}/` - 更新知识库
-- `DELETE /api/v1/knowledge/{id}/` - 删除知识库
-- `POST /api/v1/knowledge/{id}/upload/` - 上传文档
-- `GET /api/v1/knowledge/{id}/documents/` - 获取文档列表
-- `POST /api/v1/knowledge/{id}/search/` - 搜索知识库
-
-### 4. 插件管理 (apps/plugin)
-- ✅ 注册、查看、编辑、删除插件
-- ✅ 启用/禁用插件
-- ✅ OpenAPI规范验证
-
-**API端点**:
-- `GET /api/v1/plugins/` - 获取插件列表
-- `POST /api/v1/plugins/` - 注册插件
-- `GET /api/v1/plugins/{id}/` - 获取插件详情
-- `PUT /api/v1/plugins/{id}/` - 更新插件
-- `DELETE /api/v1/plugins/{id}/` - 删除插件
-- `POST /api/v1/plugins/{id}/enable/` - 启用插件
-- `POST /api/v1/plugins/{id}/disable/` - 禁用插件
-
-### 5. LLM服务 (apps/llm)
-- ✅ OpenAI集成
-- ✅ 聊天接口
-- ✅ 文本嵌入（待实现）
-
-**API端点**:
-- `POST /api/v1/llm/chat/` - LLM聊天接口
-
-## 快速开始
-
-### 本地开发环境
-
-#### 1. 安装依赖
+在 `backend` 目录下创建 `.env` 文件（如果还没有），可以参考 `backend/.env.example`：
 
 ```bash
-cd backend
+# 在 backend 目录
+copy .env.example .env
+```
+
+然后用编辑器打开 `.env`，至少确认：
+- 数据库端口为 **3308**（与项目根目录的 `docker-compose.yml` 保持一致）
+- 数据库密码与你在 `.env` 或 `.env.prod` 中的设置一致
+
+典型配置示例（仅示意，按你的实际为准）：
+
+```env
+DB_NAME=aiagent
+DB_USER=root
+DB_PASSWORD=root_password
+DB_HOST=localhost
+DB_PORT=3308
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+OPENAI_API_KEY=your-openai-api-key
+```
+
+---
+
+## 3. 一键本地启动 (推荐)
+
+在 `backend` 目录下我们提供了一个脚本：`start.ps1`，用于一键完成：
+
+1. 启动 Docker 中的 MySQL、Redis
+2. 安装 Python 依赖
+3. 执行数据库迁移
+4. 启动 Django 开发服务器
+
+### 3.1 第一次使用 PowerShell 脚本的执行策略
+
+如果你第一次在本机运行自定义 PowerShell 脚本，可能会遇到：
+
+> 无法加载文件 xxx.ps1，因为在此系统上禁止运行脚本
+
+可以在 **管理员 PowerShell** 中临时放宽执行策略（只对当前用户）：
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+如需恢复更严格策略，可以之后改回：
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Restricted
+```
+
+> 提示：公司安全策略严格时，请先确认是否允许修改执行策略。
+
+### 3.2 使用脚本一键启动
+
+在 **backend 目录** 打开 PowerShell：
+
+```powershell
+cd path\to\AnyWay\backend
+
+# 一键启动 (推荐)
+./start.ps1
+```
+
+脚本会：
+- 在项目根目录执行 `docker-compose up -d` 启动 MySQL 和 Redis
+- 在 `backend` 内执行 `pip install -r requirements.txt`
+- 执行 `python manage.py makemigrations ...` 和 `python manage.py migrate`
+- 最后执行 `python manage.py runserver`
+
+### 3.3 绕过执行策略（临时方法）
+
+如果不想修改系统执行策略，可以用一次性方式运行：
+
+```powershell
+cd path\to\AnyWay\backend
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+---
+
+## 4. 手动本地启动（不用脚本也可以）
+
+如果你更喜欢手动执行命令，可以按下面步骤操作。
+
+### 4.1 启动 MySQL 和 Redis (Docker)
+
+在 **项目根目录 AnyWay** 下：
+
+```powershell
+cd path\to\AnyWay
+
+# 后台启动 MySQL 和 Redis
+docker-compose up -d
+
+# 查看状态
+docker-compose ps
+```
+
+### 4.2 创建并激活虚拟环境（可选）
+
+在 **backend 目录** 下：
+
+```powershell
+cd path\to\AnyWay\backend
+
+# 创建虚拟环境（可选）
+python -m venv .venv
+
+# 激活虚拟环境
+./.venv/Scripts/Activate.ps1
+```
+
+> 不想用虚拟环境也可以直接用系统 Python，但不推荐在长期开发中这么做。
+
+### 4.3 安装依赖
+
+```powershell
+cd path\to\AnyWay\backend
 pip install -r requirements.txt
 ```
 
-#### 2. 配置环境变量
+### 4.4 数据库迁移
 
-```bash
-cp .env.example .env
-# 编辑 .env 文件，填写配置
-```
+```powershell
+cd path\to\AnyWay\backend
 
-#### 3. 启动数据库和Redis
-
-```bash
-# 在项目根目录
-docker-compose up -d
-```
-
-#### 4. 数据库迁移
-
-```bash
-python manage.py makemigrations
+python manage.py makemigrations agent workflow knowledge plugin llm
 python manage.py migrate
 ```
 
-#### 5. 创建超级用户
+### 4.5 创建管理员用户
 
-```bash
-python manage.py createsuperuser
+建议使用非交互方式创建/检查管理员：
+
+```powershell
+cd path\to\AnyWay\backend
+
+python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin123')"
 ```
 
-#### 6. 启动开发服务器
+### 4.6 启动开发服务器
 
-```bash
+```powershell
+cd path\to\AnyWay\backend
 python manage.py runserver
 ```
 
-访问:
-- API文档: http://localhost:8000/swagger/
-- Admin后台: http://localhost:8000/admin/
+默认访问地址：
+- 后端 API: http://localhost:8000
+- 管理后台: http://localhost:8000/admin/  (admin / admin123)
+- Swagger 文档: http://localhost:8000/swagger/
 
-### Docker部署
+---
 
-#### 开发环境
+## 5. 常见问题排查
 
-```bash
-# 启动MySQL和Redis
-docker-compose up -d
+### 5.1 端口 8000 被占用
+
+现象：启动 `manage.py runserver` 报错端口占用。
+
+处理：
+- 关闭占用 8000 端口的进程，或
+- 改用其他端口，例如：
+  ```powershell
+  python manage.py runserver 8001
+  ```
+
+### 5.2 数据库连接错误
+
+常见报错：`Access denied for user 'root'` 或 `Can't connect to MySQL server`。
+
+检查：
+- `docker-compose ps` 中 MySQL 容器是否是 `Up` 状态
+- `backend/.env` 中 `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` 是否与 Docker 配置一致
+- 端口是否为 **3308**（对宿主机暴露端口）
+
+### 5.3 迁移时提示找不到表或模型
+
+确认是否按顺序执行了：
+
+```powershell
+python manage.py makemigrations agent workflow knowledge plugin llm
+python manage.py migrate
 ```
 
-#### 生产环境
+若仍有问题，可尝试：
+- 删除本地数据库（开发环境）重新迁移
+- 或检查各 app 的 `models.py` / `apps.py` 是否正常
 
-```bash
-# 1. 配置环境变量
-cp .env.prod.example .env.prod
-# 编辑 .env.prod
+### 5.4 Swagger 打不开或报错
 
-# 2. 使用部署脚本（Linux/Mac）
-chmod +x deploy.sh
-./deploy.sh
+- 确保后端已正常启动且无异常堆栈
+- 检查最近是否修改了 serializer / view，特别是 Swagger 的 `ref_name` 冲突问题
 
-# 或使用PowerShell脚本（Windows）
-.\deploy.ps1
+---
 
-# 或手动部署
-docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-```
+## 6. 开发小提示
 
-## 数据库设计
+- 建议在 VS Code / PyCharm 中把工作目录设置为 `backend`
+- 频繁改模型时，注意保持迁移文件整洁
+- 日志默认会写入 `backend/logs/django.log`（如在 settings 中有配置）
 
-### 核心表
+---
 
-1. **agent** - 智能体表
-   - 存储智能体配置、提示词、模型配置等
-   - 关联工作流、知识库、插件
+## 7. 更新记录
 
-2. **conversation** - 对话记录表
-   - 存储用户与智能体的对话历史
-
-3. **workflow** - 工作流表
-   - 存储工作流定义（节点和连线）
-
-4. **workflow_execution** - 工作流执行记录表
-   - 记录工作流执行状态和结果
-
-5. **knowledge_base** - 知识库表
-   - 存储知识库基本信息
-
-6. **document** - 文档表
-   - 存储上传的文档信息
-
-7. **document_chunk** - 文档分块表
-   - 存储文档分块和向量嵌入
-
-8. **plugin** - 插件表
-   - 存储插件信息和OpenAPI规范
-
-## API文档
-
-启动服务后访问:
-- Swagger UI: http://localhost:8000/swagger/
-- ReDoc: http://localhost:8000/redoc/
-
-## 开发指南
-
-### 添加新的API
-
-1. 在对应的app中创建serializer
-2. 在views.py中创建ViewSet或APIView
-3. 在urls.py中注册路由
-4. 使用@swagger_auto_schema添加API文档
-
-### 统一响应格式
-
-使用`utils.response.ApiResponse`类:
-
-```python
-from utils.response import ApiResponse
-
-# 成功响应
-return ApiResponse.success(data=data, message='操作成功')
-
-# 错误响应
-return ApiResponse.error(message='操作失败')
-
-# 创建成功
-return ApiResponse.created(data=data, message='创建成功')
-```
-
-### 异常处理
-
-自定义异常处理器会自动捕获异常并返回统一格式。
-
-## 测试
-
-```bash
-# 运行测试
-python manage.py test
-
-# 运行特定app的测试
-python manage.py test apps.agent
-```
-
-## 常见问题
-
-### 1. 数据库连接失败
-
-检查MySQL是否启动，环境变量配置是否正确。
-
-### 2. Redis连接失败
-
-检查Redis是否启动，端口是否正确。
-
-### 3. 静态文件404
-
-运行 `python manage.py collectstatic`
-
-## 待实现功能
-
-- [ ] 向量数据库集成（Pinecone/Milvus）
-- [ ] 完整的工作流DAG执行引擎
-- [ ] 插件动态调用
-- [ ] 用户认证和权限管理
-- [ ] API限流
-- [ ] 日志监控
-- [ ] 单元测试覆盖
-
-## 许可证
-
-MIT License
+- 2025-11-24
+  - 新增 `backend/start.ps1` 一键本地启动脚本
+  - 新增本 README，专门说明后端在 Windows 下的本地开发流程
