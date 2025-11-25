@@ -21,7 +21,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 # ALLOWED_HOSTS 配置
 # 如果设置为 '*'，则允许所有主机访问（仅用于开发/测试环境）
 # 注意：设置为空列表 [] 会允许所有主机，但 Django 会发出安全警告
-allowed_hosts_str = os.getenv('ALLOWED_HOSTS', '*')
+allowed_hosts_str = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 if allowed_hosts_str == '*':
     ALLOWED_HOSTS = []  # 空列表允许所有主机访问（不推荐用于生产环境）
 else:
