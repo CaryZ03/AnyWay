@@ -40,7 +40,7 @@ services:
     networks:
       - aiagent-network
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py migrate --fake-initial &&
              python manage.py collectstatic --noinput &&
              gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile - --error-logfile - aiagent.wsgi:application"
 
