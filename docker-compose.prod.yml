@@ -7,8 +7,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: aiagent-backend
-    ports:
-      - "8000:8000"
+    # 生产环境：不暴露端口到宿主机，通过 Nginx 代理访问
+    # 如果需要直接访问后端，可以取消注释下面这行并修改端口
+    # ports:
+    #   - "8001:8000"  # 使用 8001 避免端口冲突
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
@@ -40,7 +42,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 aiagent.wsgi:application"
+             gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile - --error-logfile - aiagent.wsgi:application"
 
   # Celery Worker
   celery-worker:
@@ -79,11 +81,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # 生产环境使用相对路径，通过 Nginx 代理
+        VITE_API_BASE_URL: /api/v1
     container_name: aiagent-frontend
     ports:
-      - "80:80"
+      - "18080:80"  # 使用 18080 端口避免与系统服务冲突
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     restart: unless-stopped
     networks:
       - aiagent-network

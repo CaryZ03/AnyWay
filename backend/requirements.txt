@@ -4,7 +4,8 @@ djangorestframework==3.14.0
 django-cors-headers==4.3.1
 
 # Database
-mysqlclient==2.2.1
+PyMySQL==1.1.0
+cryptography>=41.0.0  # PyMySQL 连接 MySQL 8.0 需要，用于支持 caching_sha2_password 认证
 redis==5.0.1
 django-redis==5.4.0
 

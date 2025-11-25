@@ -75,6 +75,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'aiagent.wsgi.application'
 
 # Database
+# 使用 PyMySQL 作为 MySQL 驱动（在 aiagent/__init__.py 中初始化）
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.mysql'),
@@ -86,6 +87,8 @@ DATABASES = {
         'OPTIONS': {
             'charset': 'utf8mb4',
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            # PyMySQL 特定配置
+            'connect_timeout': 10,
         }
     }
 }
