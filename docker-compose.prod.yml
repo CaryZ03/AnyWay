@@ -9,12 +9,12 @@ services:
     container_name: aiagent-backend
     # 生产环境：不暴露端口到宿主机，通过 Nginx 代理访问
     # 如果需要直接访问后端，可以取消注释下面这行并修改端口
-    # ports:
-    #   - "8001:8000"  # 使用 8001 避免端口冲突
+    ports:
+      - "8000:8000"  # 使用 8001 避免端口冲突
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
       - DB_ENGINE=django.db.backends.mysql
       - DB_NAME=aiagent
       - DB_USER=aiagent
