@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # Django后端
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aiagent-backend
+    # 生产环境：不暴露端口到宿主机，通过 Nginx 代理访问
+    # 如果需要直接访问后端，可以取消注释下面这行并修改端口
+    # ports:
+    #   - "8001:8000"  # 使用 8001 避免端口冲突
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=aiagent
+      - DB_USER=aiagent
+      - DB_PASSWORD=${MYSQL_PASSWORD:-aiagent_password}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./backend/media:/app/media
+      - ./backend/logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - aiagent-network
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile - --error-logfile - aiagent.wsgi:application"
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aiagent-celery-worker
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=aiagent
+      - DB_USER=aiagent
+      - DB_PASSWORD=${MYSQL_PASSWORD:-aiagent_password}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./backend/media:/app/media
+      - ./backend/logs:/app/logs
+    depends_on:
+      - mysql
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - aiagent-network
+    command: celery -A aiagent worker -l info
+
+  # Vue前端
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # 生产环境使用相对路径，通过 Nginx 代理
+        VITE_API_BASE_URL: /api/v1
+    container_name: aiagent-frontend
+    ports:
+      - "18080:80"  # 使用 18080 端口避免与系统服务冲突
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - aiagent-network
+
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: aiagent-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: aiagent
+      MYSQL_USER: aiagent
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aiagent_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - aiagent-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: aiagent-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - aiagent-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  aiagent-network:
+    driver: bridge

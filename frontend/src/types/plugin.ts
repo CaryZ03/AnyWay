@@ -8,6 +8,31 @@
 /**
  * OpenAPI 规范主接口
  */
+export interface Components {
+  schemas?: Record<string, Schema>
+  responses?: Record<string, Response>
+  parameters?: Record<string, any>
+  examples?: Record<string, any>
+  requestBodies?: Record<string, RequestBody>
+  headers?: Record<string, any>
+  securitySchemes?: Record<string, any>
+  links?: Record<string, any>
+  callbacks?: Record<string, any>
+}
+
+export interface SecurityRequirement {
+  [name: string]: string[]
+}
+
+export interface Tag {
+  name: string
+  description?: string
+  externalDocs?: {
+    description?: string
+    url: string
+  }
+}
+
 export interface OpenAPISpec {
   openapi: string  // "3.0.0"
   info: Info
@@ -162,6 +187,9 @@ export interface Schema {
 export interface PluginConfig {
   apiKey?: string
   baseUrl?: string
+  timeout?: number
+  retry?: number
+  headers?: Record<string, string>
 }
 
 /**
