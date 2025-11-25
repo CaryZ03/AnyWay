@@ -160,10 +160,17 @@ REST_FRAMEWORK = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = os.getenv(
+# 如果设置为 '*'，则允许所有来源的跨域请求（仅用于开发/测试环境）
+cors_origins_str = os.getenv(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+)
+if cors_origins_str == '*':
+    CORS_ALLOW_ALL_ORIGINS = True  # 允许所有来源
+    CORS_ALLOWED_ORIGINS = []  # 空列表，因为使用了 CORS_ALLOW_ALL_ORIGINS
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
