@@ -117,7 +117,7 @@ services:
 
   # Redis缓存
   redis:
-    image: redis:7-alpine
+    image: redis:alpine
     container_name: aiagent-redis
     volumes:
       - redis_data:/data
