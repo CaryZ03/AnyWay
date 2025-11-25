@@ -25,9 +25,9 @@ fi
 # 构建并启动服务（使用指定的环境变量文件）
 echo "正在构建并启动服务..."
 if [ "$ENV_FILE" = ".env.prod" ]; then
-    docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+    docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 else
-    docker-compose -f docker-compose.prod.yml up -d --build
+    docker compose -f docker-compose.prod.yml up -d --build
 fi
 
 # 等待服务启动
@@ -36,7 +36,7 @@ sleep 10
 
 # 检查服务状态
 echo "检查服务状态..."
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 echo ""
 echo "=== 部署完成 ==="
@@ -48,6 +48,6 @@ echo ""
 echo "注意: 后端服务不直接暴露端口，所有请求通过前端 Nginx 代理"
 echo "注意: 如果 80 端口被占用，已自动使用 18080 端口"
 echo ""
-echo "查看日志: docker-compose -f docker-compose.prod.yml logs -f"
-echo "停止服务: docker-compose -f docker-compose.prod.yml down"
+echo "查看日志: docker compose -f docker-compose.prod.yml logs -f"
+echo "停止服务: docker compose -f docker-compose.prod.yml down"
 
