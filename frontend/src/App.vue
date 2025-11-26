@@ -2,12 +2,19 @@
 import { ref, onMounted } from 'vue'
 import { agentApi } from '@/api'
 import type { Agent } from '@/types/agent'
+import CreateAgentDialog from '@/components/CreateAgentDialog.vue'
+import AgentChat from '@/components/AgentChat.vue'
+
+// 视图状态
+const currentView = ref<'list' | 'chat'>('list')
+const selectedAgentId = ref<number | null>(null)
 
 // 数据状态
 const agents = ref<Agent[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 const selectedStatus = ref('all')
+const showCreateDialog = ref(false)
 
 // 获取智能体列表
 const fetchAgents = async () => {
@@ -15,6 +22,7 @@ const fetchAgents = async () => {
   try {
     const data = await agentApi.getList()
     agents.value = data
+    updateFilteredAgents()
   } catch (error) {
     console.error('获取智能体列表失败:', error)
   } finally {
@@ -50,7 +58,8 @@ const updateData = () => {
 }
 
 // 格式化时间
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '未知时间'
   const date = new Date(dateString)
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -63,14 +72,48 @@ const formatDate = (dateString: string) => {
 
 // 获取智能体图标
 const getAgentIcon = (index: number) => {
-  const icons = ['📚', '🗣️', '🍳', '👤']
+  const icons = ['📚', '🗣️', '🍳', '👤', '🤖', '💡', '⚡', '🔥']
   return icons[index % icons.length]
 }
 
 // 获取卡片颜色
 const getCardColor = (index: number) => {
-  const colors = ['#f5f5f5', '#fff3e0', '#e3f2fd', '#f3e5f5']
+  const colors = ['#fff5f5', '#ffe0e6', '#fff0f3', '#ffeaef']
   return colors[index % colors.length]
+}
+
+// 打开创建对话框
+const openCreateDialog = () => {
+  showCreateDialog.value = true
+}
+
+// 关闭创建对话框
+const closeCreateDialog = () => {
+  showCreateDialog.value = false
+}
+
+// 创建成功后刷新列表
+const handleCreateSuccess = () => {
+  fetchAgents()
+}
+
+// 点击智能体卡片
+const handleAgentClick = (agent: Agent) => {
+  if (agent.id) {
+    selectedAgentId.value = agent.id
+    currentView.value = 'chat'
+  }
+}
+
+// 返回列表
+const handleBackToList = () => {
+  currentView.value = 'list'
+  selectedAgentId.value = null
+}
+
+// 显示提示
+const showAlert = (message: string) => {
+  window.alert(message)
 }
 
 // 组件挂载时获取数据
@@ -81,7 +124,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="app-container">
+  <!-- 列表视图 -->
+  <div v-if="currentView === 'list'" class="app-container">
     <!-- 顶部导航栏 -->
     <header class="header">
       <h1 class="title">项目开发</h1>
@@ -95,94 +139,111 @@ onMounted(async () => {
             class="search-input"
           />
         </div>
-        <button class="btn-secondary">+ 文件夹</button>
-        <button class="btn-primary">+ 项目</button>
+        <button class="btn-secondary" @click="showAlert('文件夹功能开发中...')">+ 文件夹</button>
+        <button class="btn-primary" @click="openCreateDialog">+ 项目</button>
       </div>
     </header>
 
-    <!-- 过滤器 -->
-    <div class="filters">
-      <div class="filter-section">
+    <!-- 筛选区域 -->
+    <div class="filter-section">
+      <div class="filter-item">
         <label>项目</label>
         <select v-model="selectedStatus" @change="updateData" class="filter-select">
           <option value="all">全部</option>
-          <option value="published">已发布</option>
           <option value="draft">草稿</option>
+          <option value="published">已发布</option>
         </select>
       </div>
     </div>
 
-    <!-- 智能体列表 -->
-    <div class="agents-grid">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p>加载中...</p>
-      </div>
-      
+    <!-- 智能体卡片列表 -->
+    <div class="cards-container">
+      <div v-if="loading" class="loading">加载中...</div>
       <div v-else-if="filteredAgents.length === 0" class="empty-state">
+        <div class="empty-icon">📦</div>
         <p>暂无智能体</p>
+        <button class="btn-primary" @click="openCreateDialog">创建第一个智能体</button>
       </div>
-      
-      <div 
-        v-else
-        v-for="(agent, index) in filteredAgents" 
-        :key="agent.id" 
-        class="agent-card"
-      >
-        <div class="card-icon" :style="{ backgroundColor: getCardColor(index) }">
-          {{ getAgentIcon(index) }}
-        </div>
-        <div class="card-content">
-          <h3 class="card-title">{{ agent.name }}</h3>
-          <p class="card-description">{{ agent.description || '暂无描述' }}</p>
-          <div class="card-footer">
-            <span class="badge" :class="agent.status">
-              {{ agent.status === 'published' ? '智能体' : '智能体' }}
-            </span>
-            <div class="card-meta">
-              <span class="meta-user">👤 RootUser_{{ agent.id }}</span>
-              <span class="meta-time">最近编辑 {{ formatDate(agent.updatedAt) }}</span>
+      <div v-else class="cards-grid">
+        <div
+          v-for="(agent, index) in filteredAgents"
+          :key="agent.id"
+          class="card"
+          :style="{ backgroundColor: getCardColor(index) }"
+          @click="handleAgentClick(agent)"
+        >
+          <div class="card-icon">{{ getAgentIcon(index) }}</div>
+          <div class="card-content">
+            <h3 class="card-title">{{ agent.name }}</h3>
+            <p class="card-description">{{ agent.description || '暂无描述' }}</p>
+            <div class="card-footer">
+              <span class="badge" :class="agent.status">
+                {{ agent.status === 'published' ? '智能体' : '智能体' }}
+              </span>
+              <div class="card-meta">
+                <span class="meta-user">👤 RootUser_{{ agent.id }}</span>
+                <span class="meta-time">最近编辑 {{ formatDate(agent.updatedAt) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 创建智能体对话框 -->
+    <CreateAgentDialog 
+      :show="showCreateDialog"
+      @close="closeCreateDialog"
+      @success="handleCreateSuccess"
+    />
   </div>
+
+  <!-- 对话视图 -->
+  <AgentChat 
+    v-else-if="currentView === 'chat' && selectedAgentId"
+    :agent-id="selectedAgentId"
+    @back="handleBackToList"
+  />
 </template>
 
 <style scoped>
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 .app-container {
   min-height: 100vh;
-  background: #f5f7fa;
-  padding: 0;
-  margin: 0;
+  background: linear-gradient(135deg, #fef5f5 0%, #fff 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* 顶部导航栏 */
 .header {
   background: white;
-  padding: 1rem 2rem;
+  padding: 24px 48px;
+  box-shadow: 0 2px 8px rgba(196, 30, 58, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  background: linear-gradient(135deg, #c41e3a 0%, #8b1528 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: center;
 }
 
@@ -191,233 +252,229 @@ onMounted(async () => {
 }
 
 .search-input {
-  padding: 0.5rem 1rem;
-  padding-left: 2.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  width: 240px;
-  background: white;
-  transition: all 0.2s;
+  padding: 10px 16px;
+  border: 2px solid #ffe0e6;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 280px;
+  transition: all 0.3s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.search-input::placeholder {
-  color: #9ca3af;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #6366f1;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #4f46e5;
+  border-color: #c41e3a;
+  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
 }
 
 .btn-secondary {
+  padding: 10px 20px;
+  border: 2px solid #c41e3a;
   background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  color: #c41e3a;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: #fff5f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.15);
 }
 
-/* 过滤器 */
-.filters {
-  background: white;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #e5e7eb;
+.btn-primary {
+  padding: 10px 20px;
+  border: none;
+  background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.2);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(196, 30, 58, 0.3);
 }
 
 .filter-section {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  padding: 24px 48px;
+  background: white;
+  border-bottom: 1px solid #ffe0e6;
 }
 
-.filter-section label {
-  font-size: 0.875rem;
-  color: #6b7280;
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-item label {
+  font-size: 14px;
   font-weight: 500;
+  color: #666;
 }
 
 .filter-select {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid #d1d5db;
+  padding: 8px 16px;
+  border: 2px solid #ffe0e6;
   border-radius: 6px;
-  font-size: 0.875rem;
-  background: white;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
+  background: white;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #c41e3a;
 }
 
-/* 智能体网格 */
-.agents-grid {
-  padding: 2rem;
+.cards-container {
+  padding: 32px 48px;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 16px;
+  color: #c41e3a;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
+  gap: 24px;
 }
 
-/* 加载和空状态 */
-.loading-state, .empty-state {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 4rem 2rem;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #6366f1;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 智能体卡片 */
-.agent-card {
+.card {
   background: white;
-  border-radius: 12px;
-  padding: 1.25rem;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
   cursor: pointer;
-  display: flex;
-  gap: 1rem;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
 }
 
-.agent-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #c41e3a 0%, #8b1528 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(196, 30, 58, 0.15);
+  border-color: #c41e3a;
+}
+
+.card:hover::before {
+  transform: scaleX(1);
 }
 
 .card-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
-  flex-shrink: 0;
+  font-size: 32px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.2);
 }
 
 .card-content {
   flex: 1;
-  min-width: 0;
 }
 
 .card-title {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
 }
 
 .card-description {
-  margin: 0 0 1rem 0;
-  font-size: 0.875rem;
-  color: #6b7280;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-footer {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 12px;
 }
 
 .badge {
   display: inline-block;
-  padding: 0.25rem 0.625rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: #eff6ff;
-  color: #1d4ed8;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   width: fit-content;
 }
 
 .badge.published {
-  background: #dcfce7;
-  color: #166534;
+  background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
+  color: white;
 }
 
 .badge.draft {
-  background: #fef3c7;
-  color: #92400e;
+  background: #ffe0e6;
+  color: #c41e3a;
 }
 
 .card-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: #9ca3af;
+  gap: 4px;
+  font-size: 12px;
+  color: #999;
 }
 
-.meta-user, .meta-time {
+.meta-user,
+.meta-time {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    flex-wrap: wrap;
-  }
-  
-  .search-input {
-    width: 100%;
-  }
-  
-  .agents-grid {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-  }
+  gap: 4px;
 }
 </style>
