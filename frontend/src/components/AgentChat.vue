@@ -13,6 +13,15 @@
         </div>
       </div>
       <div class="header-actions">
+        <button 
+          v-if="agent?.status === 'draft'" 
+          class="publish-btn" 
+          @click="handlePublish"
+          :disabled="publishing"
+        >
+          {{ publishing ? '发布中...' : '📢 发布智能体' }}
+        </button>
+        <span v-else class="status-badge published">✓ 已发布</span>
         <button class="icon-btn" @click="handleSettings">⚙️</button>
       </div>
     </div>
@@ -114,6 +123,7 @@ const agent = ref<Agent | null>(null)
 const messages = ref<Message[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
+const publishing = ref(false)
 const chatBodyRef = ref<HTMLElement>()
 const textareaRef = ref<HTMLTextAreaElement>()
 
@@ -195,6 +205,25 @@ const adjustTextareaHeight = () => {
 // 返回列表
 const handleBack = () => {
   emit('back')
+}
+
+// 发布智能体
+const handlePublish = async () => {
+  if (!agent.value?.id) return
+  
+  if (!confirm('确定要发布这个智能体吗？发布后可以正常对话。')) return
+  
+  publishing.value = true
+  try {
+    const published = await agentApi.publish(agent.value.id)
+    agent.value = published
+    window.alert('智能体发布成功！现在可以开始对话了。')
+  } catch (error: any) {
+    console.error('发布失败:', error)
+    window.alert('发布失败: ' + (error.message || '未知错误'))
+  } finally {
+    publishing.value = false
+  }
 }
 
 // 设置
@@ -308,6 +337,42 @@ onMounted(() => {
 .icon-btn:hover {
   background: #c41e3a;
   transform: scale(1.05);
+}
+
+.publish-btn {
+  padding: 8px 16px;
+  border: none;
+  background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.publish-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.4);
+}
+
+.publish-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-badge.published {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
 }
 
 .chat-body {

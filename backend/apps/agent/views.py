@@ -8,6 +8,8 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+import os
+
 from .models import Agent, Conversation
 from .serializers import (
     AgentSerializer, AgentListSerializer,
@@ -120,16 +122,52 @@ class AgentViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'])
     def test(self, request, pk=None):
-        """测试智能体"""
+        """测试智能体（不需要发布即可测试）"""
+        from apps.llm.services import get_llm_service
+        import logging
+        
+        logger = logging.getLogger(__name__)
         agent = self.get_object()
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user_message = serializer.validated_data['message']
         
-        # TODO: 调用LLM服务生成回复
-        # 这里先返回模拟数据
-        assistant_message = f"这是对 '{user_message}' 的测试回复"
+        try:
+            # 构建消息历史
+            messages = []
+            
+            # 添加系统提示词
+            if agent.system_prompt:
+                messages.append({
+                    'role': 'system',
+                    'content': agent.system_prompt
+                })
+            
+            # 添加用户消息
+            messages.append({
+                'role': 'user',
+                'content': user_message
+            })
+            
+            # 获取模型配置
+            model_config = agent.model_config or {}
+            model = model_config.get('model', 'doubao-seed-1-6-251015')
+            temperature = model_config.get('temperature', 0.7)
+            if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
+                model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
+            
+            # 调用LLM服务生成回复
+            llm_service = get_llm_service('volcano')
+            assistant_message = llm_service.chat(
+                messages=messages,
+                model=model,
+                temperature=temperature
+            )
+            
+        except Exception as e:
+            logger.error(f'测试LLM调用失败: {str(e)}')
+            assistant_message = f"测试失败: {str(e)}"
         
         # 保存对话记录
         conversation = Conversation.objects.create(
@@ -151,6 +189,10 @@ class AgentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def chat(self, request, pk=None):
         """与智能体对话"""
+        from apps.llm.services import get_llm_service
+        import logging
+        
+        logger = logging.getLogger(__name__)
         agent = self.get_object()
         
         # 验证智能体是否已发布
@@ -162,11 +204,45 @@ class AgentViewSet(viewsets.ModelViewSet):
         
         user_message = serializer.validated_data['message']
         
-        # TODO: 调用LLM服务生成回复
-        # TODO: 集成知识库检索
-        # TODO: 执行工作流
-        # TODO: 调用插件
-        assistant_message = f"这是对 '{user_message}' 的回复"
+        try:
+            # 构建消息历史
+            messages = []
+            
+            # 添加系统提示词
+            if agent.system_prompt:
+                messages.append({
+                    'role': 'system',
+                    'content': agent.system_prompt
+                })
+            
+            # 添加用户消息
+            messages.append({
+                'role': 'user',
+                'content': user_message
+            })
+            
+            # 获取模型配置
+            model_config = agent.model_config or {}
+            model = model_config.get('model', 'doubao-seed-1-6-251015')
+            temperature = model_config.get('temperature', 0.7)
+            if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
+                model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
+            
+            logger.info(f'智能体 {agent.name} 开始对话，model={model}')
+            
+            # 调用LLM服务生成回复
+            llm_service = get_llm_service('volcano')
+            assistant_message = llm_service.chat(
+                messages=messages,
+                model=model,
+                temperature=temperature
+            )
+            
+            logger.info(f'LLM回复成功，长度: {len(assistant_message)}')
+            
+        except Exception as e:
+            logger.error(f'LLM调用失败: {str(e)}', exc_info=True)
+            assistant_message = f"抱歉，发生了错误: {str(e)}"
         
         # 保存对话记录
         conversation = Conversation.objects.create(
