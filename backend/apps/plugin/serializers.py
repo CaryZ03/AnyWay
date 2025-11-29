@@ -23,7 +23,7 @@ class PluginSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('OpenAPI规范必须是JSON对象')
         
         # 验证必需字段
-        required_fields = ['openapi', 'info', 'paths']
+        required_fields = ['openapi', 'info', 'servers', 'paths']
         for field in required_fields:
             if field not in value:
                 raise serializers.ValidationError(f'OpenAPI规范缺少必需字段: {field}')
