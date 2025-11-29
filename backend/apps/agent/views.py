@@ -214,7 +214,15 @@ class AgentViewSet(viewsets.ModelViewSet):
                     'role': 'system',
                     'content': agent.system_prompt
                 })
-            
+
+            # 从 Conversation 表中加载历史上下文
+            past_convs = Conversation.objects.filter(agent=agent).order_by("created_at")
+            for conv in past_convs:
+                # 用户消息
+                messages.append({"role": "user", "content": conv.user_message})
+                # 助手消息
+                messages.append({"role": "assistant", "content": conv.assistant_message})
+
             # 添加用户消息
             messages.append({
                 'role': 'user',
