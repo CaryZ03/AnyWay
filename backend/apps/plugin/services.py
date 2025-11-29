@@ -31,24 +31,32 @@ def build_tools_from_openapi(openai_spec):
     return tools
 
 
-def lookup_api(operation_id, openai_spec):
-    for path, item in openai_spec["paths"].items():
+def build_api_map(openai_spec):
+    """
+    将 OpenAPI spec 转换为 {operation_id: {"url": ..., "method": ...}} 的字典
+    """
+    api_map = {}
+    base_url = openai_spec["servers"][0]["url"].rstrip("/")
+    for path, item in openai_spec.get("paths", {}).items():
         for method, info in item.items():
-            if info.get("operationId") == operation_id:
-                base = openai_spec["servers"][0]["url"]
-                return {"url": base + path, "method": method.upper()}
-    return None
+            op_id = info.get("operationId")
+            if not op_id:
+                continue
+            api_map[op_id] = {
+                "url": base_url + path,
+                "method": method.upper()
+            }
+    return api_map
 
 
-def call_plugin(operation_id, params):
-    api = lookup_api(operation_id)
+def call_plugin(api_maps, plugin_id, operation_id, params):
+    api = api_maps.get(plugin_id, {}).get(operation_id)
     if not api:
         return {"error": f"operationId not found: {operation_id}"}
-    url, method = api["url"], api["method"]
-    # if "device_uuid" in params:
-    #     params["device_uuid"] = DEVICE_UUID
-    # if "uuid" in params:
-    #     params["uuid"] = DEVICE_UUID
+
+    url = api["url"]
+    method = api["method"]
+
     try:
         if method == "GET":
             resp = requests.get(url, params=params, timeout=5)
@@ -57,3 +65,4 @@ def call_plugin(operation_id, params):
         return resp.json()
     except Exception as e:
         return {"error": str(e)}
+

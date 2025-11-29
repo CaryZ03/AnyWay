@@ -9,6 +9,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 import os
+import json
 
 from .models import Agent, Conversation
 from .serializers import (
@@ -16,6 +17,8 @@ from .serializers import (
     ConversationSerializer, ChatRequestSerializer
 )
 from utils.response import ApiResponse
+from ..plugin.models import Plugin
+from ..plugin.services import build_tools_from_openapi, build_api_map
 
 
 class AgentViewSet(viewsets.ModelViewSet):
@@ -26,7 +29,7 @@ class AgentViewSet(viewsets.ModelViewSet):
     """
     queryset = Agent.objects.filter(deleted=False)
     serializer_class = AgentSerializer
-    
+
     def get_serializer_class(self):
         """根据action选择序列化器"""
         if self.action == 'list':
@@ -203,7 +206,22 @@ class AgentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         user_message = serializer.validated_data['message']
-        
+
+        plugin_ids = agent.plugin_ids
+        active_tools = []
+        api_map = {}
+        for pid in plugin_ids:
+            try:
+                plugin = Plugin.objects.get(id=pid)
+                if plugin.status == 'enabled':
+                    # 如果 openai_spec 是 JSONField，直接用 plugin.openai_spec
+                    # 如果是 TextField 存字符串，需要 json.loads(plugin.openai_spec)
+                    spec = plugin.openapi_spec
+                    active_tools.extend(build_tools_from_openapi(spec))
+                    api_map[pid] = build_api_map(spec)
+            except Plugin.DoesNotExist:
+                continue
+
         try:
             # 构建消息历史
             messages = []
@@ -243,7 +261,9 @@ class AgentViewSet(viewsets.ModelViewSet):
             assistant_message = llm_service.chat(
                 messages=messages,
                 model=model,
-                temperature=temperature
+                temperature=temperature,
+                active_tools=active_tools,
+                api_map=api_map
             )
             
             logger.info(f'LLM回复成功，长度: {len(assistant_message)}')

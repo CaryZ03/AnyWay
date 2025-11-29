@@ -5,6 +5,7 @@ import os
 from typing import List, Dict, Optional
 import logging
 import requests
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -61,46 +62,104 @@ class VolcanoService(LLMService):
                 'Authorization': f'Bearer {self.api_key}',
                 'Content-Type': 'application/json',
             })
-    
+
     def chat(self, messages: List[Dict], model: str = 'doubao-seed-1-6-251015', **kwargs):
         """
-        火山引擎聊天接口（兼容 OpenAI Chat Completions）
+        火山引擎聊天接口（兼容 OpenAI Chat Completions），支持插件
         """
         if not self.api_key:
             return "抱歉，AI服务尚未配置，请设置 ARK_API_KEY。"
-        
-        url = f"{self.base_url.rstrip('/')}/chat/completions"
+
+        tools = kwargs.pop("active_tools", [])
+        api_map = kwargs.pop("api_map", {})
+
         payload = {
-            'model': model,
-            'messages': messages,
-            'temperature': kwargs.get('temperature', 0.7),
+            "model": model,
+            "messages": messages,
+            "temperature": kwargs.get("temperature", 0.7),
         }
-        reasoning_effort = kwargs.get('reasoning_effort')
-        if reasoning_effort:
-            payload['reasoning_effort'] = reasoning_effort
-        
+
         try:
-            logger.info(f'调用火山引擎API: model={model}, messages_count={len(messages)}')
-            response = self.session.post(url, json=payload, timeout=60)
+            logger.info(f"调用火山引擎API: model={model}, messages_count={len(messages)}")
+            logger.debug(f"Payload: {json.dumps({**payload, 'tools': tools}, ensure_ascii=False, indent=2)}")
+            logger.debug(f"工具生成结果：{json.dumps(tools, ensure_ascii=False, indent=2)}")
+            logger.debug(f"工具API生成结果：{json.dumps(api_map, ensure_ascii=False, indent=2)}")
+
+            # 第一次调用 LLM
+            response = self.session.post(
+                f"{self.base_url.rstrip('/')}/chat/completions",
+                json={**payload, "tools": tools},
+                timeout=60
+            )
             response.raise_for_status()
             data = response.json()
-            choices = data.get('choices') or []
-            if not choices:
-                logger.error(f'火山引擎返回内容异常: {data}')
-                return "抱歉，我暂时无法回复，你可以稍后再试。"
-            message = choices[0].get('message') or {}
-            reply = message.get('content')
-            if reply:
-                logger.info(f'火山引擎API调用成功，回复长度: {len(reply)}')
-                return reply
-            logger.warning(f'火山引擎未返回content: {data}')
-            return "抱歉，我没有生成回复。"
-        except requests.HTTPError as http_err:
-            error_text = http_err.response.text if http_err.response else str(http_err)
-            logger.error(f'火山引擎HTTP错误: {error_text}')
-            return f"抱歉，AI服务返回错误：{error_text}"
+            logger.debug(f"LLM返回原始数据: {json.dumps(data, ensure_ascii=False, indent=2)}")
+            message = data.get("choices", [{}])[0].get("message", {})
+
+            # 处理 tool_calls
+            tool_calls = message.get("tool_calls") or []
+            tool_results = []
+            if tool_calls and api_map:
+                logger.info(f"发现 {len(tool_calls)} 个工具调用")
+                for idx, tool_call in enumerate(tool_calls, 1):
+                    tool_name = tool_call["function"]["name"]
+                    tool_args = json.loads(tool_call["function"]["arguments"])
+                    logger.info(f"工具调用 {idx}: {tool_name} 参数: {tool_args}")
+
+                    # 在 api_map 中找到对应的插件接口
+                    plugin_api = None
+                    for p_map in api_map.values():
+                        if tool_name in p_map:
+                            plugin_api = p_map[tool_name]
+                            break
+
+                    if plugin_api:
+                        method = plugin_api["method"]
+                        url = plugin_api["url"]
+                        logger.info(f"准备调用插件API: {tool_name} -> {url}, 方法: {method}")
+
+                        try:
+                            if method.upper() == "GET":
+                                result = requests.get(url, params=tool_args, timeout=5).json()
+                            else:
+                                result = requests.post(url, json=tool_args, timeout=5).json()
+                            logger.info(f"插件API返回结果: {json.dumps(result, ensure_ascii=False)}")
+                        except Exception as e:
+                            result = {"error": str(e)}
+                            logger.error(f"插件调用失败: {tool_name}, 错误: {str(e)}")
+
+                        # 收集工具结果用于第二次调用 LLM
+                        tool_results.append(f"{tool_name} 返回: {json.dumps(result, ensure_ascii=False)}")
+                    else:
+                        logger.warning(f"未找到插件API映射: {tool_name}")
+
+            # 第二次调用 LLM，传入工具结果作为 assistant 消息，而不是 role=tool
+            if tool_results:
+                messages_for_second_call = messages + [{
+                    "role": "assistant",
+                    "content": "\n".join(tool_results)
+                }]
+                payload2 = {
+                    "model": model,
+                    "messages": messages_for_second_call,
+                    "temperature": kwargs.get("temperature", 0.7),
+                }
+                logger.debug(f"第二次调用火山引擎 payload: {json.dumps(payload2, ensure_ascii=False, indent=2)}")
+
+                response = self.session.post(
+                    f"{self.base_url.rstrip('/')}/chat/completions",
+                    json=payload2,
+                    timeout=60
+                )
+                response.raise_for_status()
+                data = response.json()
+                logger.debug(f"第二次 LLM 返回原始数据: {json.dumps(data, ensure_ascii=False, indent=2)}")
+                message = data.get("choices", [{}])[0].get("message", {})
+
+            return message.get("content", "")
+
         except Exception as e:
-            logger.error(f'火山引擎API调用失败: {str(e)}', exc_info=True)
+            logger.error(f"火山引擎API调用失败: {str(e)}", exc_info=True)
             return f"抱歉，发生了错误: {str(e)}"
 
 
@@ -127,6 +186,7 @@ class OpenAIService(LLMService):
             return "OpenAI服务未配置"
             
         try:
+
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
