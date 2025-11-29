@@ -254,3 +254,49 @@ class AgentViewSet(viewsets.ModelViewSet):
         
         conv_serializer = ConversationSerializer(conversation)
         return ApiResponse.success(data=conv_serializer.data, message='对话成功')
+
+    @swagger_auto_schema(
+        operation_summary='为智能体添加插件',
+        operation_description='将一个或多个插件ID添加到智能体的 plugin_ids 列表中',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['plugin_ids'],
+            properties={
+                'plugin_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description='要添加的插件ID列表，也可以传单个整数'
+                )
+            }
+        ),
+        responses={200: AgentSerializer()}
+    )
+    @action(detail=True, methods=['post'])
+    def add_plugins(self, request, pk=None):
+        """给智能体添加一个或多个插件"""
+        agent = self.get_object()
+        plugin_ids = request.data.get('plugin_ids')
+
+        if plugin_ids is None:
+            return ApiResponse.error(message='plugin_ids 必填')
+
+        # 如果前端传的是单个整数，转换为列表
+        if isinstance(plugin_ids, int):
+            plugin_ids = [plugin_ids]
+        elif not isinstance(plugin_ids, list):
+            return ApiResponse.error(message='plugin_ids 必须是整数或整数列表')
+
+        # 初始化 plugin_ids
+        current_ids = agent.plugin_ids or []
+
+        # 去重并添加
+        for pid in plugin_ids:
+            if pid not in current_ids:
+                current_ids.append(pid)
+
+        agent.plugin_ids = current_ids
+        agent.save()
+
+        serializer = self.get_serializer(agent)
+        return ApiResponse.success(data=serializer.data, message='插件添加成功')
+
