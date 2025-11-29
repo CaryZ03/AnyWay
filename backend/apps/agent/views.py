@@ -300,3 +300,43 @@ class AgentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(agent)
         return ApiResponse.success(data=serializer.data, message='插件添加成功')
 
+    @swagger_auto_schema(
+        operation_summary='从智能体删除插件',
+        operation_description='将一个或多个插件ID从智能体的 plugin_ids 列表中移除',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['plugin_ids'],
+            properties={
+                'plugin_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description='要删除的插件ID列表，也可以传单个整数'
+                )
+            }
+        ),
+        responses={200: AgentSerializer()}
+    )
+    @action(detail=True, methods=['post'])
+    def remove_plugins(self, request, pk=None):
+        """从智能体删除一个或多个插件"""
+        agent = self.get_object()
+        plugin_ids = request.data.get('plugin_ids')
+
+        if plugin_ids is None:
+            return ApiResponse.error(message='plugin_ids 必填')
+
+        # 如果前端传的是单个整数，转换为列表
+        if isinstance(plugin_ids, int):
+            plugin_ids = [plugin_ids]
+        elif not isinstance(plugin_ids, list):
+            return ApiResponse.error(message='plugin_ids 必须是整数或整数列表')
+
+        # 当前插件列表
+        current_ids = agent.plugin_ids or []
+
+        # 移除指定ID
+        agent.plugin_ids = [pid for pid in current_ids if pid not in plugin_ids]
+        agent.save()
+
+        serializer = self.get_serializer(agent)
+        return ApiResponse.success(data=serializer.data, message='插件删除成功')
