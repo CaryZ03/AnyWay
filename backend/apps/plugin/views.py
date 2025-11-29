@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
 
 from .models import Plugin
-from .serializers import PluginSerializer, PluginListSerializer
+from .serializers import PluginSerializer, PluginListSerializer, PluginCreateUpdateSerializer
 from utils.response import ApiResponse
 
 
@@ -23,6 +23,8 @@ class PluginViewSet(viewsets.ModelViewSet):
         """根据action选择序列化器"""
         if self.action == 'list':
             return PluginListSerializer
+        elif self.action in ['create', 'update', 'partial_update']:
+            return PluginCreateUpdateSerializer
         return PluginSerializer
     
     @swagger_auto_schema(
@@ -39,7 +41,7 @@ class PluginViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary='注册插件',
         operation_description='注册新的插件',
-        request_body=PluginSerializer,
+        request_body=PluginCreateUpdateSerializer,
         responses={201: PluginSerializer()}
     )
     def create(self, request, *args, **kwargs):
@@ -63,7 +65,7 @@ class PluginViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary='更新插件',
         operation_description='更新插件信息',
-        request_body=PluginSerializer,
+        request_body=PluginCreateUpdateSerializer,
         responses={200: PluginSerializer()}
     )
     def update(self, request, *args, **kwargs):
