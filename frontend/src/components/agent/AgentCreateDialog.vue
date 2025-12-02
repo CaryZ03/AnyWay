@@ -27,7 +27,36 @@
 
       <!-- 表单内容 -->
       <div class="dialog-body">
-        <form @submit.prevent="handleSubmit">
+        <!-- AI 创建模式 -->
+        <div v-if="activeTab === 'ai'" class="ai-create-form">
+          <div class="form-group">
+            <label class="form-label">描述你想要的智能体</label>
+            <textarea
+              v-model="aiDescription"
+              class="form-textarea ai-textarea"
+              placeholder="例如：我想要一个能够帮助用户学习编程的智能体，它应该能够解释代码、提供编程练习、回答编程问题..."
+              rows="8"
+            />
+            <div class="ai-hint">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 12V8M8 4h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              <span>AI 将根据你的描述自动生成智能体的配置</span>
+            </div>
+          </div>
+          <div class="dialog-footer">
+            <button type="button" class="btn btn-cancel" @click="handleClose">
+              取消
+            </button>
+            <button type="button" class="btn btn-primary" @click="handleAICreate" :disabled="loading || !aiDescription.trim()">
+              {{ loading ? 'AI 分析中...' : '开始创建' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 标准创建模式 -->
+        <form v-else @submit.prevent="handleSubmit">
           <!-- 智能体名称 -->
           <div class="form-group">
             <label class="form-label required">智能体名称</label>
@@ -99,22 +128,6 @@
             </div>
           </div>
 
-          <!-- 图标选择 -->
-          <div class="form-group">
-            <label class="form-label required">图标</label>
-            <div class="icon-selector">
-              <div
-                v-for="icon in iconOptions"
-                :key="icon"
-                class="icon-option"
-                :class="{ selected: formData.icon === icon }"
-                @click="formData.icon = icon"
-              >
-                {{ icon }}
-              </div>
-            </div>
-          </div>
-
           <!-- 操作按钮 -->
           <div class="dialog-footer">
             <button type="button" class="btn btn-cancel" @click="handleClose">
@@ -148,14 +161,12 @@ const emit = defineEmits<Emits>()
 
 const activeTab = ref('standard')
 const loading = ref(false)
-
-const iconOptions = ['🤖', '📚', '🗣️', '🍳', '💡', '🎨', '🎵', '⚡', '🔥', '✨']
+const aiDescription = ref('')
 
 const formData = reactive({
   name: '',
   description: '',
   systemPrompt: '',
-  icon: '🤖',
   modelConfig: {
     model: 'gpt-3.5-turbo',
     temperature: 0.7,
@@ -165,6 +176,54 @@ const formData = reactive({
 
 const handleClose = () => {
   emit('close')
+  // 重置表单
+  activeTab.value = 'standard'
+  aiDescription.value = ''
+  formData.name = ''
+  formData.description = ''
+  formData.systemPrompt = ''
+}
+
+const handleAICreate = async () => {
+  if (!aiDescription.value.trim()) {
+    window.alert('请描述你想要的智能体')
+    return
+  }
+
+  loading.value = true
+  
+  try {
+    // TODO: 调用 AI 分析接口，根据描述生成智能体配置
+    // 这里暂时模拟 AI 分析过程
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // 模拟 AI 生成的配置
+    const aiGeneratedConfig = {
+      name: `AI生成的智能体_${Date.now()}`,
+      description: aiDescription.value,
+      systemPrompt: `你是一个${aiDescription.value}的智能助手。请根据用户的需求提供帮助。`,
+      userPromptTemplate: '',
+      modelConfig: {
+        model: 'gpt-3.5-turbo',
+        temperature: 0.7,
+        maxTokens: 2000
+      },
+      knowledgeBaseIds: [],
+      pluginIds: [],
+      status: 'draft' as const
+    }
+    
+    await agentApi.create(aiGeneratedConfig)
+    
+    window.alert('智能体创建成功！')
+    emit('success')
+    handleClose()
+  } catch (error: any) {
+    console.error('创建失败:', error)
+    window.alert('创建失败: ' + (error.message || '未知错误'))
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleSubmit = async () => {
@@ -256,13 +315,13 @@ const handleSubmit = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .dialog-title {
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1f2937;
   margin: 0;
 }
 
@@ -270,7 +329,7 @@ const handleSubmit = async () => {
   background: none;
   border: none;
   font-size: 28px;
-  color: #666;
+  color: #6b7280;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -283,13 +342,13 @@ const handleSubmit = async () => {
 }
 
 .close-btn:hover {
-  background: #f5f5f5;
-  color: #c41e3a;
+  background: #f3f4f6;
+  color: #1f2937;
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e7eb;
   padding: 0 24px;
 }
 
@@ -298,14 +357,14 @@ const handleSubmit = async () => {
   border: none;
   background: none;
   font-size: 14px;
-  color: #666;
+  color: #6b7280;
   cursor: pointer;
   position: relative;
   transition: color 0.2s;
 }
 
 .tab-btn.active {
-  color: #c41e3a;
+  color: #2563eb;
   font-weight: 500;
 }
 
@@ -316,13 +375,19 @@ const handleSubmit = async () => {
   left: 0;
   right: 0;
   height: 2px;
-  background: #c41e3a;
+  background: #2563eb;
 }
 
 .dialog-body {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+}
+
+.ai-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .form-group {
@@ -333,18 +398,18 @@ const handleSubmit = async () => {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: #374151;
   margin-bottom: 8px;
 }
 
 .form-label.required::after {
   content: ' *';
-  color: #c41e3a;
+  color: #ef4444;
 }
 
 .param-value {
   float: right;
-  color: #c41e3a;
+  color: #2563eb;
   font-weight: 600;
 }
 
@@ -352,8 +417,8 @@ const handleSubmit = async () => {
 .form-select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -362,15 +427,15 @@ const handleSubmit = async () => {
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #c41e3a;
-  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
@@ -380,14 +445,30 @@ const handleSubmit = async () => {
 
 .form-textarea:focus {
   outline: none;
-  border-color: #c41e3a;
-  box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ai-textarea {
+  min-height: 200px;
+}
+
+.ai-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  background: #eff6ff;
+  border-radius: 8px;
+  color: #1e40af;
+  font-size: 13px;
 }
 
 .char-count {
   text-align: right;
   font-size: 12px;
-  color: #999;
+  color: #9ca3af;
   margin-top: 4px;
 }
 
@@ -395,7 +476,7 @@ const handleSubmit = async () => {
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: #e5e5e5;
+  background: #e5e7eb;
   outline: none;
   -webkit-appearance: none;
 }
@@ -406,7 +487,7 @@ const handleSubmit = async () => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #c41e3a;
+  background: #2563eb;
   cursor: pointer;
 }
 
@@ -414,7 +495,7 @@ const handleSubmit = async () => {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #c41e3a;
+  background: #2563eb;
   cursor: pointer;
   border: none;
 }
@@ -423,37 +504,8 @@ const handleSubmit = async () => {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #999;
+  color: #9ca3af;
   margin-top: 4px;
-}
-
-.icon-selector {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
-
-.icon-option {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  border: 2px solid #e5e5e5;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.icon-option:hover {
-  border-color: #c41e3a;
-  background: rgba(196, 30, 58, 0.05);
-}
-
-.icon-option.selected {
-  border-color: #c41e3a;
-  background: rgba(196, 30, 58, 0.1);
 }
 
 .dialog-footer {
@@ -462,12 +514,12 @@ const handleSubmit = async () => {
   gap: 12px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid #e5e7eb;
 }
 
 .btn {
   padding: 10px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -476,22 +528,22 @@ const handleSubmit = async () => {
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .btn-cancel:hover {
-  background: #e5e5e5;
+  background: #e5e7eb;
 }
 
 .btn-primary {
-  background: #c41e3a;
+  background: #2563eb;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #a01830;
-  box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-primary:disabled {
@@ -499,4 +551,3 @@ const handleSubmit = async () => {
   cursor: not-allowed;
 }
 </style>
-

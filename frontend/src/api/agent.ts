@@ -154,5 +154,27 @@ export const agentApi = {
     const requestData: ChatRequest = { message, context }
     return await request.post<ConversationResponse>(`/agents/${id}/chat/`, requestData)
   },
+
+  /**
+   * 为智能体添加插件
+   */
+  addPlugins: async (id: number, pluginIds: number | number[]): Promise<Agent> => {
+    const requestData = {
+      plugin_ids: Array.isArray(pluginIds) ? pluginIds : [pluginIds]
+    }
+    const data = await request.post<BackendAgent>(`/agents/${id}/add_plugins/`, requestData)
+    return transformAgent(data)
+  },
+
+  /**
+   * 从智能体删除插件
+   */
+  removePlugins: async (id: number, pluginIds: number | number[]): Promise<Agent> => {
+    const requestData = {
+      plugin_ids: Array.isArray(pluginIds) ? pluginIds : [pluginIds]
+    }
+    const data = await request.post<BackendAgent>(`/agents/${id}/remove_plugins/`, requestData)
+    return transformAgent(data)
+  },
 }
 

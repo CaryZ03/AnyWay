@@ -2,9 +2,9 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 // API 基础配置
+// 开发环境：通过 Nginx 代理访问后端（docker-compose.prod.yml 中前端容器暴露在 18080 端口）
 // 生产环境：使用相对路径（通过 Nginx 代理）
-// 开发环境：使用环境变量或默认值
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1')
+const API_BASE_URL = import.meta.env.PROD ? '/api/v1' : 'http://localhost:18080/api/v1'
 
 // 创建 axios 实例
 const axiosInstance: AxiosInstance = axios.create({
@@ -51,6 +51,7 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     // 后端统一响应格式：{ code, message, data, success }
     const { data } = response
+    console.log('[响应拦截器] 原始响应:', data)
     
     // 如果后端返回 success: false，视为错误
     if (data.success === false) {
@@ -58,7 +59,9 @@ axiosInstance.interceptors.response.use(
     }
     
     // 返回 data 字段
-    return data.data !== undefined ? data.data : data
+    const result = data.data !== undefined ? data.data : data
+    console.log('[响应拦截器] 处理后结果:', result)
+    return result
   },
   (error: AxiosError) => {
     // 处理 HTTP 错误

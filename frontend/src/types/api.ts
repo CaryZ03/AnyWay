@@ -176,14 +176,15 @@ export interface SearchResult {
 
 /**
  * 后端 Plugin 字段格式
+ * 注意：list 接口可能不返回 openapi_spec，只有 retrieve 接口返回完整信息
  */
 export interface BackendPlugin {
   id?: number
   name: string
   description?: string
-  openapi_spec: string | Record<string, any>
-  base_url: string
-  auth_config: string | Record<string, any>
+  openapi_spec?: string | Record<string, any>  // 列表接口可能没有，详情接口有
+  base_url?: string  // 列表接口可能没有
+  auth_config?: string | Record<string, any>  // 列表接口可能没有
   status: 'enabled' | 'disabled'
   created_at?: string
   updated_at?: string
