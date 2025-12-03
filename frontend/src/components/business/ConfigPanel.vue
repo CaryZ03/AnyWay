@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { pluginApi, agentApi, knowledgeApi } from '@/api'
+import { useRouter } from 'vue-router'
+import { pluginApi, agentApi, knowledgeApi, workflowApi } from '@/api'
 import type { Plugin, Operation, PathItem } from '@/types/plugin'
 import type { ModelConfig } from '@/types/agent'
 import type { KnowledgeBase } from '@/types/knowledge-base'
@@ -19,6 +20,8 @@ const emit = defineEmits<{
   (e: 'update:pluginIds', value: number[]): void
   (e: 'update:modelConfig', value: ModelConfig): void
 }>()
+
+const router = useRouter()
 
 // 从 API 获取的数据
 const availablePlugins = ref<Plugin[]>([])
@@ -313,6 +316,87 @@ onMounted(() => {
   loadData()
   initModelConfig()
 })
+
+// 打开工作流编辑页面
+const openWorkflowEditor = async () => {
+  try {
+    // 如果已经绑定了工作流，直接跳转
+    if (props.workflowId && props.agentId) {
+      router.push({
+        name: 'WorkflowEdit',
+        params: { id: props.workflowId },
+        query: { agentId: props.agentId },
+      })
+      return
+    }
+
+    // 没有工作流时，为当前智能体创建一个默认工作流
+    if (!props.agentId) {
+      alert('请先保存智能体，再配置工作流')
+      return
+    }
+
+    const defaultWorkflow: import('@/types/workflow').WorkflowForm = {
+      name: '智能体工作流',
+      description: '由智能体自动创建的默认工作流',
+      version: 'v1',
+      nodes: [
+        {
+          id: 'start',
+          type: 'start',
+          name: '开始',
+          position: { x: 80, y: 200 },
+          config: {},
+        },
+        {
+          id: 'llm-1',
+          type: 'llm',
+          name: '大模型',
+          position: { x: 320, y: 200 },
+          config: {
+            model: 'doubao-seed-1-6-251015',
+            systemPrompt:
+              '你是一个对话型 AI 助手，负责根据工作流上下文为用户生成最终回答。请严格按照用户提供的问题和上下文信息进行回答。',
+            prompt:
+              '根据下面的用户问题和工作流上下文回答用户。请使用简明、友好且准确的中文回答用户的问题。',
+            temperature: 0.7,
+            maxTokens: 2000,
+          },
+        },
+        {
+          id: 'end',
+          type: 'end',
+          name: '结束',
+          position: { x: 560, y: 200 },
+          config: {},
+        },
+      ],
+      edges: [
+        { id: 'e-start-llm-1', source: 'start', target: 'llm-1' },
+        { id: 'e-llm-1-end', source: 'llm-1', target: 'end' },
+      ],
+      config: {
+        timeout: 60,
+        retry: 0,
+        parallel: false,
+        version: 'v1',
+      },
+    }
+
+    const created = await workflowApi.create(defaultWorkflow)
+    await agentApi.update(props.agentId, { workflowId: created.id })
+    emit('update:workflowId', created.id)
+
+    router.push({
+      name: 'WorkflowEdit',
+      params: { id: created.id },
+      query: { agentId: props.agentId },
+    })
+  } catch (error: any) {
+    console.error('打开工作流编辑器失败:', error)
+    alert('打开工作流编辑器失败: ' + (error?.message || '未知错误'))
+  }
+}
 </script>
 
 <template>
@@ -522,6 +606,24 @@ onMounted(() => {
             />
             <span class="config-value">{{ presencePenalty.toFixed(1) }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- 工作流配置入口 -->
+      <div class="config-section">
+        <label class="section-label">工作流</label>
+        <div class="workflow-row">
+          <div class="workflow-info">
+            <div class="workflow-title">
+              {{ workflowId ? `已绑定工作流 #${workflowId}` : '尚未绑定工作流' }}
+            </div>
+            <div class="workflow-desc">
+              使用工作流可以通过「开始 → 意图识别 → 大模型 → 结束」等节点，编排更复杂的回复流程。
+            </div>
+          </div>
+          <button class="workflow-btn" @click="openWorkflowEditor">
+            {{ workflowId ? '编辑工作流' : '创建并编辑工作流' }}
+          </button>
         </div>
       </div>
     </template>
@@ -906,5 +1008,52 @@ onMounted(() => {
 .knowledge-base-meta {
   font-size: 12px;
   color: #9ca3af;
+}
+
+.workflow-row {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workflow-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workflow-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.workflow-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.workflow-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.workflow-btn:hover {
+  background: #1d4ed8;
 }
 </style>

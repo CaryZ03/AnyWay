@@ -191,8 +191,10 @@ class AgentViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'])
     def chat(self, request, pk=None):
-        """与智能体对话（支持未发布智能体，支持插件调用）"""
+        """与智能体对话（支持未发布智能体，支持插件调用和工作流）"""
         from apps.llm.services import get_llm_service
+        from apps.workflow.models import Workflow, WorkflowExecution
+        from apps.workflow.services import WorkflowEngine
         import logging
         
         logger = logging.getLogger(__name__)
@@ -218,56 +220,78 @@ class AgentViewSet(viewsets.ModelViewSet):
             except Plugin.DoesNotExist:
                 continue
 
-        try:
-            # 构建消息历史
-            messages = []
-            
-            # 添加系统提示词
-            if agent.system_prompt:
+        # 如果智能体绑定了工作流，则优先走工作流编排
+        if agent.workflow_id:
+            try:
+                workflow = Workflow.objects.get(id=agent.workflow_id, deleted=False)
+                execution = WorkflowExecution.objects.create(
+                    workflow=workflow,
+                    input_data={'user_input': user_message},
+                    status='pending',
+                )
+                engine = WorkflowEngine()
+                output = engine.execute(workflow, {'user_input': user_message}, execution)
+                if isinstance(output, dict):
+                    assistant_message = str(output.get('answer') or output)
+                else:
+                    assistant_message = str(output)
+            except Workflow.DoesNotExist:
+                logger.warning(f'智能体 {agent.id} 绑定的工作流不存在，回退到直接 LLM 对话')
+            except Exception as e:
+                logger.error(f'工作流执行失败，将回退到直接 LLM 对话: {str(e)}', exc_info=True)
+
+        # 未绑定工作流，或工作流执行失败则回退到原有直连 LLM 逻辑
+        if 'assistant_message' not in locals():
+            try:
+                # 构建消息历史
+                messages = []
+                
+                # 添加系统提示词
+                if agent.system_prompt:
+                    messages.append({
+                        'role': 'system',
+                        'content': agent.system_prompt
+                    })
+                
+                # 从 Conversation 表中加载历史上下文
+                past_convs = Conversation.objects.filter(agent=agent).order_by("created_at")
+                for conv in past_convs:
+                    # 用户消息
+                    messages.append({"role": "user", "content": conv.user_message})
+                    # 助手消息
+                    messages.append({"role": "assistant", "content": conv.assistant_message})
+                
+                # 添加用户消息
                 messages.append({
-                    'role': 'system',
-                    'content': agent.system_prompt
+                    'role': 'user',
+                    'content': user_message
                 })
-
-            # 从 Conversation 表中加载历史上下文
-            past_convs = Conversation.objects.filter(agent=agent).order_by("created_at")
-            for conv in past_convs:
-                # 用户消息
-                messages.append({"role": "user", "content": conv.user_message})
-                # 助手消息
-                messages.append({"role": "assistant", "content": conv.assistant_message})
-
-            # 添加用户消息
-            messages.append({
-                'role': 'user',
-                'content': user_message
-            })
-            
-            # 获取模型配置
-            model_config = agent.model_config or {}
-            provider = model_config.get('provider', 'volcano')
-            model = model_config.get('model', 'doubao-seed-1-6-251015')
-            temperature = model_config.get('temperature', 0.7)
-            if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
-                model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
-            
-            logger.info(f'智能体 {agent.name} 开始对话，provider={provider}, model={model}')
-            
-            # 调用LLM服务生成回复
-            llm_service = get_llm_service(provider)
-            assistant_message = llm_service.chat(
-                messages=messages,
-                model=model,
-                temperature=temperature,
-                active_tools=active_tools,
-                api_map=api_map
-            )
-            
-            logger.info(f'LLM回复成功，长度: {len(assistant_message)}')
-            
-        except Exception as e:
-            logger.error(f'LLM调用失败: {str(e)}', exc_info=True)
-            assistant_message = f"抱歉，发生了错误: {str(e)}"
+                
+                # 获取模型配置
+                model_config = agent.model_config or {}
+                provider = model_config.get('provider', 'volcano')
+                model = model_config.get('model', 'doubao-seed-1-6-251015')
+                temperature = model_config.get('temperature', 0.7)
+                if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
+                    model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
+                
+                logger.info(f'智能体 {agent.name} 开始对话，provider={provider}, model={model}')
+                
+                # 调用LLM服务生成回复
+                llm_service = get_llm_service(provider)
+                assistant_message = llm_service.chat(
+                    messages=messages,
+                    model=model,
+                    temperature=temperature,
+                    active_tools=active_tools,
+                    api_map=api_map
+                )
+                
+                logger.info(f'LLM回复成功，长度: {len(assistant_message)}')
+                
+            except Exception as e:
+                logger.error(f'LLM调用失败: {str(e)}', exc_info=True)
+                assistant_message = f"抱歉，发生了错误: {str(e)}"
         
         # 保存对话记录
         conversation = Conversation.objects.create(
