@@ -4,10 +4,13 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
+import logging
 
 from .models import Plugin
 from .serializers import PluginSerializer, PluginListSerializer, PluginCreateUpdateSerializer
 from utils.response import ApiResponse
+
+logger = logging.getLogger(__name__)
 
 
 class PluginViewSet(viewsets.ModelViewSet):
@@ -46,10 +49,20 @@ class PluginViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         """注册插件"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return ApiResponse.created(data=serializer.data, message='插件注册成功')
+        logger.info(f'创建插件请求，接收到的数据: {request.data}')
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if not serializer.is_valid():
+                logger.warning(f'序列化器验证失败: {serializer.errors}')
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            logger.info(f'插件创建成功: {instance.id}')
+            # 使用 PluginSerializer 返回完整数据
+            response_serializer = PluginSerializer(instance)
+            return ApiResponse.created(data=response_serializer.data, message='插件注册成功')
+        except Exception as e:
+            logger.error(f'创建插件时发生异常: {str(e)}', exc_info=True)
+            raise
     
     @swagger_auto_schema(
         operation_summary='获取插件详情',
@@ -73,8 +86,10 @@ class PluginViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return ApiResponse.success(data=serializer.data, message='插件更新成功')
+        updated_instance = serializer.save()
+        # 使用 PluginSerializer 返回完整数据
+        response_serializer = PluginSerializer(updated_instance)
+        return ApiResponse.success(data=response_serializer.data, message='插件更新成功')
     
     @swagger_auto_schema(
         operation_summary='删除插件',

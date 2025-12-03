@@ -201,6 +201,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'apps.plugin': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'utils.exception_handler': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
     },
 }
 

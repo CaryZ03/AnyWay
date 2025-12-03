@@ -1599,3 +1599,4 @@ async function uploadDocument(knowledgeBaseId, file) {
 如有问题或建议，请访问项目仓库：https://github.com/CaryZ03/AnyWay
 
 
+
