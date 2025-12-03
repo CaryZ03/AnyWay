@@ -3,16 +3,16 @@
  */
 
 /**
- * Knowledge Base 实体（后端返回格式）
+ * Knowledge Base 实体（前端格式）
  */
 export interface KnowledgeBase {
   id?: number
   name: string
   description?: string
-  vectorDbType: 'chroma' | 'milvus'
-  chunkSize: number
-  chunkOverlap: number
+  embeddingModel: string
+  documentCount?: number
   createdAt?: string
+  updatedAt?: string
 }
 
 /**
@@ -22,9 +22,7 @@ export interface KnowledgeBaseForm {
   id?: number
   name: string
   description?: string
-  vectorDbType: 'chroma' | 'milvus'
-  chunkSize: number
-  chunkOverlap: number
+  embeddingModel: string
 }
 
 /**

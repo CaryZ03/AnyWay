@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { pluginApi, agentApi } from '@/api'
+import { pluginApi, agentApi, knowledgeApi } from '@/api'
 import type { Plugin, Operation, PathItem } from '@/types/plugin'
 import type { ModelConfig } from '@/types/agent'
+import type { KnowledgeBase } from '@/types/knowledge-base'
 
 const props = defineProps<{
   agentId?: number
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 
 // 从 API 获取的数据
 const availablePlugins = ref<Plugin[]>([])
+const availableKnowledgeBases = ref<KnowledgeBase[]>([])
 const loading = ref(false)
 
 // 插件展开状态
@@ -115,6 +117,47 @@ const isPluginSelected = (pluginId: number | undefined) => {
   return props.pluginIds.includes(pluginId)
 }
 
+// 检查知识库是否被选中
+const isKnowledgeBaseSelected = (knowledgeBaseId: number | undefined) => {
+  if (!knowledgeBaseId) return false
+  return props.knowledgeBaseIds.includes(knowledgeBaseId)
+}
+
+// 切换知识库选择
+const handleKnowledgeBaseToggle = async (knowledgeBaseId: number | undefined) => {
+  if (!knowledgeBaseId) return
+  
+  const current = [...props.knowledgeBaseIds]
+  const index = current.indexOf(knowledgeBaseId)
+  const isAdding = index === -1
+
+  // 如果有 agentId，直接调用 API 更新
+  if (props.agentId) {
+    try {
+      // 更新知识库关联
+      const updatedIds = isAdding 
+        ? [...current, knowledgeBaseId]
+        : current.filter(id => id !== knowledgeBaseId)
+      
+      await agentApi.update(props.agentId, {
+        knowledgeBaseIds: updatedIds
+      })
+      emit('update:knowledgeBaseIds', updatedIds)
+    } catch (error: any) {
+      console.error('更新知识库关联失败:', error)
+      alert('更新知识库关联失败: ' + (error?.message || '未知错误'))
+    }
+  } else {
+    // 没有 agentId，只更新本地状态（用于新建场景）
+    if (isAdding) {
+      current.push(knowledgeBaseId)
+    } else {
+      current.splice(index, 1)
+    }
+    emit('update:knowledgeBaseIds', current)
+  }
+}
+
 // 切换插件选择
 const handlePluginToggle = async (pluginId: number | undefined) => {
   if (!pluginId) return
@@ -153,9 +196,13 @@ const handlePluginToggle = async (pluginId: number | undefined) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const plugins = await pluginApi.getList()
+    const [plugins, knowledgeBases] = await Promise.all([
+      pluginApi.getList(),
+      knowledgeApi.getList()
+    ])
     // 只显示启用的插件
     availablePlugins.value = plugins.filter(p => p.status === 'enabled')
+    availableKnowledgeBases.value = knowledgeBases
   } catch (error) {
     console.error('加载配置数据失败:', error)
   } finally {
@@ -274,6 +321,36 @@ onMounted(() => {
       <div class="loading-text">加载中...</div>
     </div>
     <template v-else>
+      <!-- 知识库配置 -->
+      <div class="config-section">
+        <label class="section-label">知识库</label>
+        <div v-if="availableKnowledgeBases.length === 0" class="empty-hint">
+          暂无知识库
+        </div>
+        <div v-else class="knowledge-base-list">
+          <div
+            v-for="kb in availableKnowledgeBases"
+            :key="kb.id"
+            class="knowledge-base-item"
+          >
+            <label class="knowledge-base-checkbox">
+              <input
+                type="checkbox"
+                :checked="isKnowledgeBaseSelected(kb.id!)"
+                @change="handleKnowledgeBaseToggle(kb.id!)"
+              />
+              <div class="knowledge-base-info">
+                <span class="knowledge-base-name">{{ kb.name }}</span>
+                <span v-if="kb.description" class="knowledge-base-description">{{ kb.description }}</span>
+                <span class="knowledge-base-meta">
+                  {{ kb.documentCount || 0 }} 个文档
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="config-section">
         <label class="section-label">插件</label>
         <div v-if="availablePlugins.length === 0" class="empty-hint">
@@ -770,5 +847,64 @@ onMounted(() => {
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
+}
+
+.knowledge-base-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.knowledge-base-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s;
+}
+
+.knowledge-base-item:hover {
+  border-color: #2563eb;
+  background: #f9fafb;
+}
+
+.knowledge-base-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.knowledge-base-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #2563eb;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.knowledge-base-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.knowledge-base-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.knowledge-base-description {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.knowledge-base-meta {
+  font-size: 12px;
+  color: #9ca3af;
 }
 </style>

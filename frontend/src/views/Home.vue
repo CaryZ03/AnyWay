@@ -210,6 +210,7 @@ const handleAgentDelete = async (agent: Agent) => {
   try {
     await agentApi.delete(agent.id)
     await fetchCurrentData()
+    // 删除成功提示（可选，因为列表会自动刷新）
   } catch (error: any) {
     console.error('删除智能体失败:', error)
     alert('删除失败: ' + (error?.message || '未知错误'))

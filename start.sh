@@ -85,6 +85,21 @@ check_ports() {
     fi
 }
 
+# 构建前端镜像
+build_frontend() {
+    log_info "构建前端镜像（确保代码更新生效）..."
+    
+    cd "$(dirname "$0")"
+    
+    # 重新构建前端镜像以确保代码更新生效
+    if docker compose -f docker-compose.prod.yml build frontend; then
+        log_success "前端镜像构建成功"
+    else
+        log_warning "前端镜像构建失败，将尝试使用现有镜像"
+        return 1
+    fi
+}
+
 # 启动服务
 start_services() {
     log_info "启动服务..."
@@ -203,6 +218,7 @@ main() {
     check_docker
     check_config
     check_ports
+    build_frontend
     start_services
     wait_for_services
     
