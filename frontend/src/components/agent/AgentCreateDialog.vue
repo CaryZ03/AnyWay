@@ -100,32 +100,24 @@
 
           <!-- 模型配置 -->
           <div class="form-group">
-            <label class="form-label">模型选择</label>
-            <select v-model="formData.modelConfig.model" class="form-select">
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            <label class="form-label">模型提供商</label>
+            <select v-model="formData.modelConfig.provider" class="form-select" @change="handleProviderChange">
+              <option value="volcano">火山引擎（豆包）</option>
+              <option value="openai">OpenAI</option>
             </select>
           </div>
 
-          <!-- Temperature滑块 -->
           <div class="form-group">
-            <label class="form-label">
-              温度系数 (Temperature)
-              <span class="param-value">{{ formData.modelConfig.temperature }}</span>
-            </label>
-            <input
-              v-model.number="formData.modelConfig.temperature"
-              type="range"
-              min="0"
-              max="2"
-              step="0.1"
-              class="form-slider"
-            />
-            <div class="slider-labels">
-              <span>精确</span>
-              <span>创造</span>
-            </div>
+            <label class="form-label">模型</label>
+            <select v-model="formData.modelConfig.model" class="form-select">
+              <option 
+                v-for="model in (formData.modelConfig.provider === 'volcano' ? volcanoModels : openaiModels)"
+                :key="model.value"
+                :value="model.value"
+              >
+                {{ model.label }}
+              </option>
+            </select>
           </div>
 
           <!-- 操作按钮 -->
@@ -163,16 +155,39 @@ const activeTab = ref('standard')
 const loading = ref(false)
 const aiDescription = ref('')
 
+// 可用的模型列表
+const volcanoModels = [
+  { value: 'doubao-seed-1-6-251015', label: '豆包 Seed 1.6' },
+  { value: 'doubao-pro-4k', label: '豆包 Pro 4K' },
+  { value: 'doubao-pro-32k', label: '豆包 Pro 32K' },
+]
+
+const openaiModels = [
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+]
+
 const formData = reactive({
   name: '',
   description: '',
   systemPrompt: '',
   modelConfig: {
-    model: 'gpt-3.5-turbo',
+    provider: 'volcano',
+    model: 'doubao-seed-1-6-251015',
     temperature: 0.7,
     maxTokens: 2000,
   },
 })
+
+// 处理提供商切换
+const handleProviderChange = () => {
+  if (formData.modelConfig.provider === 'volcano') {
+    formData.modelConfig.model = 'doubao-seed-1-6-251015'
+  } else {
+    formData.modelConfig.model = 'gpt-3.5-turbo'
+  }
+}
 
 const handleClose = () => {
   emit('close')
@@ -182,6 +197,8 @@ const handleClose = () => {
   formData.name = ''
   formData.description = ''
   formData.systemPrompt = ''
+  formData.modelConfig.provider = 'volcano'
+  formData.modelConfig.model = 'doubao-seed-1-6-251015'
 }
 
 const handleAICreate = async () => {
@@ -204,7 +221,8 @@ const handleAICreate = async () => {
       systemPrompt: `你是一个${aiDescription.value}的智能助手。请根据用户的需求提供帮助。`,
       userPromptTemplate: '',
       modelConfig: {
-        model: 'gpt-3.5-turbo',
+        provider: 'volcano',
+        model: 'doubao-seed-1-6-251015',
         temperature: 0.7,
         maxTokens: 2000
       },

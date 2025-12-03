@@ -176,5 +176,12 @@ export const agentApi = {
     const data = await request.post<BackendAgent>(`/agents/${id}/remove_plugins/`, requestData)
     return transformAgent(data)
   },
+
+  /**
+   * 获取智能体对话历史
+   */
+  getConversations: async (id: number): Promise<ConversationResponse[]> => {
+    return await request.get<ConversationResponse[]>(`/agents/${id}/conversations/`)
+  },
 }
 

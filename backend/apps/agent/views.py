@@ -185,22 +185,18 @@ class AgentViewSet(viewsets.ModelViewSet):
     
     @swagger_auto_schema(
         operation_summary='与智能体对话',
-        operation_description='与已发布的智能体进行对话',
+        operation_description='与智能体进行对话（支持未发布智能体，支持插件调用）',
         request_body=ChatRequestSerializer,
         responses={200: openapi.Response('对话成功', ConversationSerializer())}
     )
     @action(detail=True, methods=['post'])
     def chat(self, request, pk=None):
-        """与智能体对话"""
+        """与智能体对话（支持未发布智能体，支持插件调用）"""
         from apps.llm.services import get_llm_service
         import logging
         
         logger = logging.getLogger(__name__)
         agent = self.get_object()
-        
-        # 验证智能体是否已发布
-        if agent.status != 'published':
-            return ApiResponse.error(message='智能体未发布，无法对话')
         
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -249,15 +245,16 @@ class AgentViewSet(viewsets.ModelViewSet):
             
             # 获取模型配置
             model_config = agent.model_config or {}
+            provider = model_config.get('provider', 'volcano')
             model = model_config.get('model', 'doubao-seed-1-6-251015')
             temperature = model_config.get('temperature', 0.7)
             if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
                 model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
             
-            logger.info(f'智能体 {agent.name} 开始对话，model={model}')
+            logger.info(f'智能体 {agent.name} 开始对话，provider={provider}, model={model}')
             
             # 调用LLM服务生成回复
-            llm_service = get_llm_service('volcano')
+            llm_service = get_llm_service(provider)
             assistant_message = llm_service.chat(
                 messages=messages,
                 model=model,
@@ -282,6 +279,19 @@ class AgentViewSet(viewsets.ModelViewSet):
         
         conv_serializer = ConversationSerializer(conversation)
         return ApiResponse.success(data=conv_serializer.data, message='对话成功')
+
+    @swagger_auto_schema(
+        operation_summary='获取智能体对话历史',
+        operation_description='获取智能体的所有对话记录',
+        responses={200: ConversationSerializer(many=True)}
+    )
+    @action(detail=True, methods=['get'])
+    def conversations(self, request, pk=None):
+        """获取智能体的对话历史"""
+        agent = self.get_object()
+        conversations = Conversation.objects.filter(agent=agent).order_by('created_at')
+        serializer = ConversationSerializer(conversations, many=True)
+        return ApiResponse.success(data=serializer.data, message='获取对话历史成功')
 
     @swagger_auto_schema(
         operation_summary='为智能体添加插件',

@@ -68,8 +68,8 @@ const sendMessage = async () => {
   sending.value = true
 
   try {
-    // 使用 test API，支持未发布的智能体测试
-    const response = await agentApi.test(props.agentId, userMessage)
+    // 使用 chat API，支持未发布的智能体，支持插件调用
+    const response = await agentApi.chat(props.agentId, userMessage)
     
     // 保存对话记录
     conversationHistory.value.push(response)
@@ -94,13 +94,48 @@ const sendMessage = async () => {
   }
 }
 
-// 当 agentId 改变时，清空消息（可以在这里加载历史记录，但后端没有API）
+// 加载历史消息
+const loadHistory = async () => {
+  if (!props.agentId) {
+    messages.value = []
+    conversationHistory.value = []
+    return
+  }
+
+  try {
+    const history = await agentApi.getConversations(props.agentId)
+    conversationHistory.value = history
+    
+    // 将历史消息转换为消息列表格式
+    messages.value = []
+    history.forEach((conv) => {
+      messages.value.push({
+        role: 'user',
+        content: conv.user_message,
+        timestamp: conv.created_at,
+        conversationId: conv.id
+      })
+      messages.value.push({
+        role: 'assistant',
+        content: conv.assistant_message,
+        timestamp: conv.created_at,
+        conversationId: conv.id
+      })
+    })
+    
+    scrollToBottom()
+  } catch (error) {
+    console.error('加载历史消息失败:', error)
+  }
+}
+
+// 当 agentId 改变时，加载历史记录
 watch(() => props.agentId, () => {
-  messages.value = []
-  conversationHistory.value = []
+  loadHistory()
 }, { immediate: true })
 
 onMounted(() => {
+  loadHistory()
   scrollToBottom()
 })
 </script>
