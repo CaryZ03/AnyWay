@@ -140,18 +140,25 @@ export interface BackendKnowledgeBaseRequest {
 
 /**
  * 后端 Document 字段格式
+ * 注意：根据实际API返回，可能包含以下字段：
+ * - knowledge_base_id (Postman API) 或 knowledge_base (标准REST API)
+ * - created_at (Postman API) 或 uploaded_at (标准REST API)
  */
 export interface BackendDocument {
   id?: number
-  knowledge_base: number
+  knowledge_base?: number  // 标准REST API
+  knowledge_base_id?: number  // Postman API
   filename: string
   file_type: string
   file_size: number
   status: 'pending' | 'processing' | 'completed' | 'failed'
   error_message?: string
   chunk_count?: number
-  uploaded_at?: string
+  uploaded_at?: string  // 标准REST API
+  created_at?: string  // Postman API
+  updated_at?: string  // Postman API
   processed_at?: string
+  sha256?: string  // Postman API
 }
 
 /**

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { agentApi, pluginApi } from '@/api'
 import type { Agent } from '@/types/agent'
 import type { Plugin } from '@/types/plugin'
@@ -13,6 +13,7 @@ import CreateAgentDialog from '@/components/agent/AgentCreateDialog.vue'
 import PluginEditDialog from '@/components/plugin/PluginEditDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 // 侧边栏状态
 const activeSidebarItem = ref<SidebarItem>('agent')
@@ -71,7 +72,8 @@ const filteredPlugins = computed(() => {
 const pageTitle = computed(() => {
   const titles: Record<SidebarItem, string> = {
     agent: '智能体',
-    plugin: '插件'
+    plugin: '插件',
+    knowledge: '知识库'
   }
   return titles[activeSidebarItem.value]
 })
@@ -79,7 +81,8 @@ const pageTitle = computed(() => {
 const createButtonText = computed(() => {
   const texts: Record<SidebarItem, string> = {
     agent: '新建智能体',
-    plugin: '新建插件'
+    plugin: '新建插件',
+    knowledge: '新建知识库'
   }
   return texts[activeSidebarItem.value]
 })
@@ -124,6 +127,28 @@ const fetchCurrentData = async () => {
 
 // 侧边栏切换
 const handleSidebarChange = (item: SidebarItem) => {
+  // 如果是知识库，跳转到知识库列表页面
+  if (item === 'knowledge') {
+    router.push('/knowledge')
+    return
+  }
+  
+  // 如果是智能体或插件，确保在首页
+  if (item === 'agent' || item === 'plugin') {
+    // 如果当前不在首页，先跳转到首页
+    if (route.path !== '/') {
+      router.push('/')
+      // 等待路由切换完成后再更新状态
+      nextTick(() => {
+        activeSidebarItem.value = item
+        selectedStatus.value = 'all'
+        searchQuery.value = ''
+        fetchCurrentData()
+      })
+      return
+    }
+  }
+  
   activeSidebarItem.value = item
   selectedStatus.value = 'all'
   searchQuery.value = ''

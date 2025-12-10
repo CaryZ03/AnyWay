@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-export type SidebarItem = 'agent' | 'plugin'
+export type SidebarItem = 'agent' | 'plugin' | 'knowledge'
 
 const props = defineProps<{
   activeItem?: SidebarItem
@@ -13,7 +13,8 @@ const emit = defineEmits<{
 
 const items: { key: SidebarItem; label: string; icon: string }[] = [
   { key: 'agent', label: '智能体', icon: '🤖' },
-  { key: 'plugin', label: '插件', icon: '🔌' }
+  { key: 'plugin', label: '插件', icon: '🔌' },
+  { key: 'knowledge', label: '知识库', icon: '📚' }
 ]
 
 const active = ref<SidebarItem>(props.activeItem || 'agent')

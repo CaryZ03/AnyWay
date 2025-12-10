@@ -56,6 +56,18 @@
         </div>
       </div>
 
+      <!-- 查询知识库指示器 -->
+      <div v-if="queryingKnowledge" class="message">
+        <div class="message-avatar">📚</div>
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-sender">系统</span>
+            <span class="message-time">{{ getCurrentTime() }}</span>
+          </div>
+          <div class="message-text typing">正在查询知识库...</div>
+        </div>
+      </div>
+
       <!-- 加载中指示器 -->
       <div v-if="loading" class="message">
         <div class="message-avatar">
@@ -85,7 +97,7 @@
         ></textarea>
         <button
           class="send-btn"
-          :disabled="!inputMessage.trim() || loading"
+          :disabled="!inputMessage.trim() || loading || queryingKnowledge"
           @click="handleSend"
         >
           <span v-if="!loading">发送</span>
@@ -101,8 +113,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
-import { agentApi } from '@/api'
+import { agentApi, knowledgeApi } from '@/api'
 import type { Agent } from '@/types/agent'
+import type { ConversationResponse } from '@/types/api'
 
 interface Props {
   agentId: number
@@ -123,9 +136,11 @@ const agent = ref<Agent | null>(null)
 const messages = ref<Message[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
+const queryingKnowledge = ref(false)
 const publishing = ref(false)
 const chatBodyRef = ref<HTMLElement>()
 const textareaRef = ref<HTMLTextAreaElement>()
+const conversationHistory = ref<ConversationResponse[]>([])
 
 // 加载智能体信息
 const loadAgent = async () => {
@@ -141,6 +156,75 @@ const loadAgent = async () => {
 const getCurrentTime = () => {
   const now = new Date()
   return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+/**
+ * 查询知识库并构建知识上下文
+ */
+const buildKnowledgeContext = async (query: string): Promise<string> => {
+  if (!agent.value || !agent.value.knowledgeBaseIds) {
+    return ''
+  }
+
+  // 处理 knowledgeBaseIds 可能是 string 或 number[] 的情况
+  let kbIds: number[] = []
+  if (typeof agent.value.knowledgeBaseIds === 'string') {
+    try {
+      const parsed = JSON.parse(agent.value.knowledgeBaseIds)
+      kbIds = Array.isArray(parsed) ? parsed.map((id: any) => typeof id === 'string' ? parseInt(id, 10) : id).filter((id: any) => !isNaN(id)) : []
+    } catch {
+      console.warn('无法解析 knowledgeBaseIds')
+      return ''
+    }
+  } else if (Array.isArray(agent.value.knowledgeBaseIds)) {
+    kbIds = agent.value.knowledgeBaseIds.map((id: string | number) => typeof id === 'string' ? parseInt(id, 10) : id).filter((id: number) => !isNaN(id))
+  }
+
+  if (kbIds.length === 0) {
+    return ''
+  }
+
+  // 设置查询状态
+  queryingKnowledge.value = true
+  await nextTick()
+  scrollToBottom()
+
+  const knowledgeContexts: string[] = []
+
+  try {
+    // 查询所有关联的知识库
+    for (const kbId of kbIds) {
+      try {
+        const results = await knowledgeApi.query(kbId, query, 3)
+        if (results && results.length > 0) {
+          const kbContent = results
+            .map((result, index) => `${index + 1}. ${result.content}`)
+            .join('\n\n')
+          knowledgeContexts.push(`知识库 #${kbId} 相关内容：\n${kbContent}`)
+        }
+      } catch (error) {
+        console.warn(`查询知识库 ${kbId} 失败:`, error)
+        // 继续查询其他知识库，不中断流程
+      }
+    }
+  } finally {
+    // 清除查询状态
+    queryingKnowledge.value = false
+  }
+
+  return knowledgeContexts.join('\n\n---\n\n')
+}
+
+/**
+ * 替换提示词模板中的变量
+ */
+const replacePromptVariables = (template: string, variables: Record<string, string>): string => {
+  let result = template
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`\\{${key}\\}`, 'g')
+    result = result.replace(regex, value)
+  }
+  return result
 }
 
 // 发送消息
@@ -163,8 +247,38 @@ const handleSend = async () => {
   scrollToBottom()
 
   try {
+    // 如果有知识库，先查询知识库
+    let knowledgeContext = ''
+    if (agent.value && agent.value.knowledgeBaseIds && agent.value.knowledgeBaseIds.length > 0) {
+      knowledgeContext = await buildKnowledgeContext(message)
+    }
+
+    // 构建对话历史
+    const conversationHistoryText = conversationHistory.value
+      .slice(-5) // 只取最近5轮对话
+      .map((conv: ConversationResponse) => `用户: ${conv.user_message}\n助手: ${conv.assistant_message}`)
+      .join('\n\n')
+
+    // 如果有userPromptTemplate，替换变量
+    let finalMessage = message
+    if (agent.value && agent.value.userPromptTemplate) {
+      const variables: Record<string, string> = {
+        user_message: message,
+        conversation_history: conversationHistoryText || '无',
+        knowledge_context: knowledgeContext || '无相关知识',
+        plugin_response: '' // 插件响应由后端处理
+      }
+      finalMessage = replacePromptVariables(agent.value.userPromptTemplate, variables)
+    } else if (knowledgeContext) {
+      // 如果没有模板但有知识库内容，直接拼接
+      finalMessage = `用户问题：${message}\n\n相关知识：\n${knowledgeContext}\n\n请基于以上信息回答用户问题。`
+    }
+
     // 调用后端API
-    const response = await agentApi.chat(props.agentId, message, {})
+    const response = await agentApi.chat(props.agentId, finalMessage)
+    
+    // 保存对话记录
+    conversationHistory.value.push(response)
     
     // 添加AI回复
     messages.value.push({
@@ -496,6 +610,12 @@ onMounted(() => {
 .user-message .message-text {
   background: linear-gradient(135deg, #c41e3a 0%, #a01830 100%);
   color: white;
+}
+
+.message-text.typing {
+  color: #999;
+  font-style: italic;
+  background: #f5f5f5;
 }
 
 .typing-indicator {
