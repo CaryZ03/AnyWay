@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { ControlButton, Controls } from '@vue-flow/controls'
@@ -7,6 +7,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import { initialEdges, initialNodes } from './initial-elements'
 import Icon from './components/Icon.vue'
 import type { GraphNode, GraphEdge } from '@vue-flow/core'
+import { CustomNode, StartNode, EndNode, StringNode, LLMNode, HTTPNode, IntentNode, KnowledgeNode } from './nodes'
 
 // 导入 Vue Flow 的样式
 import '@vue-flow/core/dist/style.css'
@@ -26,7 +27,16 @@ const { onInit, onNodeDragStop, onConnect, addEdges, setViewport, toObject } = u
 
 const nodes = ref<GraphNode[]>(initialNodes)
 const edges = ref<GraphEdge[]>(initialEdges)
-
+const nodeTypes = {
+  custom: markRaw(CustomNode),
+  start: markRaw(StartNode),
+  end: markRaw(EndNode),
+  string: markRaw(StringNode),
+  llm: markRaw(LLMNode),
+  http: markRaw(HTTPNode),
+  intent: markRaw(IntentNode),
+  knowledge: markRaw(KnowledgeNode),
+}
 /**
  * This is a Vue Flow event-hook which can be listened to from anywhere you call the composable, instead of only on the main component
  * Any event that is available as `@event-name` on the VueFlow component is also available as `onEventName` on the composable and vice versa
@@ -76,7 +86,7 @@ function resetTransform() {
 </script>
 
 <template>
-  <VueFlow :nodes="nodes" :edges="edges" class="basic-flow" :default-viewport="{ zoom: 1.5 }"
+  <VueFlow :nodes="nodes" :nodeTypes="nodeTypes" :edges="edges" class="basic-flow" :default-viewport="{ zoom: 1.5 }"
     :min-zoom="0.2" :max-zoom="4">
     <Background pattern-color="#aaa" :gap="16" />
 

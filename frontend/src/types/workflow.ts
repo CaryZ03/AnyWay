@@ -17,33 +17,7 @@ export interface NodePosition {
  * 实际字段在运行时由后端注入，这里不需要额外配置，因此保持为空对象。
  */
 export interface StartNodeConfig {
-  // 预留扩展位，当前不需要任何配置
-}
-
-/**
- * 意图识别节点配置
- */
-export interface IntentNodeConfig {
-  /**
-   * 输入文本，支持变量替换
-   */
   input_text: string
-  /**
-   * 意图类别列表
-   */
-  intent_categories: string[]
-  /**
-   * 识别方式：llm 或 keyword
-   */
-  recognition_method: 'llm' | 'keyword'
-  /**
-   * LLM识别方式时需要的智能体UUID
-   */
-  agent_uuid?: string
-  /**
-   * 关键词匹配方式时的关键词映射
-   */
-  keywords?: Record<string, string[]>
 }
 
 /**
@@ -113,6 +87,34 @@ export interface KnowledgeNodeConfig {
 }
 
 /**
+ * 意图识别节点配置
+ */
+export interface IntentNodeConfig {
+  /**
+   * 输入文本，支持变量替换
+   */
+  input_text: string
+  /**
+   * 意图类别列表
+   */
+  intent_categories: string[]
+  /**
+   * 识别方式：llm 或 keyword
+   */
+  recognition_method: 'llm' | 'keyword'
+  /**
+   * LLM识别方式时需要的智能体UUID
+   */
+  agent_uuid?: string
+  /**
+   * 关键词匹配方式时的关键词映射
+   */
+  keywords?: Record<string, string[]>
+}
+
+
+
+/**
  * 字符串处理节点配置
  */
 export interface StringNodeConfig {
@@ -146,7 +148,7 @@ export interface PluginNodeConfig {
  * 因此暂时不需要额外配置。
  */
 export interface EndNodeConfig {
-  // 预留扩展位
+  output_text: string
 }
 
 /**
@@ -165,88 +167,96 @@ export type NodeConfig =
 /**
  * 工作流节点基础接口
  */
-export interface BaseWorkflowNode {
+export interface BaseNode {
   id: string
-  name?: string
   position?: NodePosition
 }
 
 /**
  * 开始节点
  */
-export interface StartWorkflowNode extends BaseWorkflowNode {
+export interface StartNode extends BaseNode {
   type: 'start'
-  config: StartNodeConfig
+  data: StartNodeConfig
 }
 
 /**
  * 意图识别节点
  */
-export interface IntentWorkflowNode extends BaseWorkflowNode {
+export interface IntentNode extends BaseNode {
   type: 'intent'
-  config: IntentNodeConfig
+  data: IntentNodeConfig
 }
 
 /**
  * LLM节点
  */
-export interface LLMWorkflowNode extends BaseWorkflowNode {
+export interface LLMNode extends BaseNode {
   type: 'llm'
-  config: LLMNodeConfig
+  data: LLMNodeConfig
 }
 
 /**
  * HTTP请求节点
  */
-export interface HTTPWorkflowNode extends BaseWorkflowNode {
+export interface HTTPNode extends BaseNode {
   type: 'http'
-  config: HTTPNodeConfig
+  data: HTTPNodeConfig
 }
 
 /**
  * 知识库检索节点
  */
-export interface KnowledgeWorkflowNode extends BaseWorkflowNode {
+export interface KnowledgeNode extends BaseNode {
   type: 'knowledge'
-  config: KnowledgeNodeConfig
+  data: KnowledgeNodeConfig
 }
 
 /**
  * 字符串处理节点
  */
-export interface StringWorkflowNode extends BaseWorkflowNode {
+export interface StringNode extends BaseNode {
   type: 'string'
-  config: StringNodeConfig
-}
-
-/**
- * 插件节点
- */
-export interface PluginWorkflowNode extends BaseWorkflowNode {
-  type: 'plugin'
-  config: PluginNodeConfig
+  data: StringNodeConfig
 }
 
 /**
  * 结束节点
  */
-export interface EndWorkflowNode extends BaseWorkflowNode {
+export interface EndNode extends BaseNode {
   type: 'end'
-  config: EndNodeConfig
+  data: EndNodeConfig
 }
 
 /**
  * 工作流节点联合类型
  */
-export type WorkflowNode =
-  | StartWorkflowNode
-  | IntentWorkflowNode
-  | LLMWorkflowNode
-  | HTTPWorkflowNode
-  | KnowledgeWorkflowNode
-  | StringWorkflowNode
-  | PluginWorkflowNode
-  | EndWorkflowNode
+export type Node =
+  | StartNode
+  | IntentNode
+  | LLMNode
+  | HTTPNode
+  | KnowledgeNode
+  | StringNode
+  | EndNode
+
+/**
+ * 字段绑定：将源节点的输出字段绑定到目标节点的输入字段
+ */
+export interface FieldBinding {
+  /**
+   * 源节点ID
+   */
+  sourceNodeId: string
+  /**
+   * 源节点输出字段名
+   */
+  sourceField: string
+  /**
+   * 目标节点输入字段名
+   */
+  targetField: string
+}
 
 /**
  * 工作流边
@@ -256,6 +266,10 @@ export interface WorkflowEdge {
   source: string
   target: string
   condition?: string
+  /**
+   * 字段绑定列表：定义从源节点到目标节点的数据绑定
+   */
+  bindings?: FieldBinding[]
 }
 
 /**
@@ -279,11 +293,55 @@ export interface Workflow {
   name: string
   description?: string
   version?: string
-  nodes: string | WorkflowNode[]  // 可能是 JSON 字符串，也可能是已解析的数组
+  nodes: string | Node[]  // 可能是 JSON 字符串，也可能是已解析的数组
   edges: string | WorkflowEdge[]  // 可能是 JSON 字符串，也可能是已解析的数组
   config: string | WorkflowConfig  // 可能是 JSON 字符串，也可能是已解析的对象
   createdAt?: string
   updatedAt?: string
+}
+
+/**
+ * 节点字段定义：描述节点的输入和输出字段
+ */
+export interface NodeFieldDefinition {
+  /**
+   * 字段名
+   */
+  name: string
+  /**
+   * 字段显示名称
+   */
+  label: string
+  /**
+   * 字段类型
+   */
+  type: 'string' | 'number' | 'object' | 'array'
+  /**
+   * 是否必需
+   */
+  required?: boolean
+  /**
+   * 字段描述
+   */
+  description?: string
+}
+
+/**
+ * 节点类型元数据：定义每种节点类型的输入和输出字段
+ */
+export interface NodeTypeMetadata {
+  /**
+   * 节点类型
+   */
+  type: Node['type']
+  /**
+   * 输入字段列表（可绑定的字段）
+   */
+  inputFields: NodeFieldDefinition[]
+  /**
+   * 输出字段列表（可被绑定的字段）
+   */
+  outputFields: NodeFieldDefinition[]
 }
 
 /**
@@ -294,7 +352,7 @@ export interface WorkflowForm {
   name: string
   description?: string
   version?: string
-  nodes: WorkflowNode[]
+  nodes: Node[]
   edges: WorkflowEdge[]
   config: WorkflowConfig
 }
