@@ -354,13 +354,11 @@ const openWorkflowEditor = async () => {
           name: '大模型',
           position: { x: 320, y: 200 },
           config: {
-            model: 'doubao-seed-1-6-251015',
-            systemPrompt:
-              '你是一个对话型 AI 助手，负责根据工作流上下文为用户生成最终回答。请严格按照用户提供的问题和上下文信息进行回答。',
+            agent_uuid: '',
             prompt:
               '根据下面的用户问题和工作流上下文回答用户。请使用简明、友好且准确的中文回答用户的问题。',
             temperature: 0.7,
-            maxTokens: 2000,
+            max_tokens: 2000,
           },
         },
         {

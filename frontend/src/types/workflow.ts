@@ -22,52 +22,112 @@ export interface StartNodeConfig {
 
 /**
  * 意图识别节点配置
- *
- * 会把输入的自然语言分类到若干预设意图中，后端会要求大模型严格返回 JSON。
  */
 export interface IntentNodeConfig {
   /**
-   * 供大模型选择的意图列表
+   * 输入文本，支持变量替换
    */
-  intents: Array<{
-    id: string
-    name: string
-    description?: string
-    examples?: string[]
-  }>
+  input_text: string
   /**
-   * 模型名称（目前主要使用豆包）
+   * 意图类别列表
    */
-  model?: string
+  intent_categories: string[]
   /**
-   * 温度，默认 0.2，偏保守以保证分类稳定性
+   * 识别方式：llm 或 keyword
    */
-  temperature?: number
+  recognition_method: 'llm' | 'keyword'
+  /**
+   * LLM识别方式时需要的智能体UUID
+   */
+  agent_uuid?: string
+  /**
+   * 关键词匹配方式时的关键词映射
+   */
+  keywords?: Record<string, string[]>
 }
 
 /**
  * LLM 节点配置
- *
- * 该节点会根据系统提示词 + 用户提示词模板，调用大模型生成回答，
- * 后端会要求模型以 JSON 形式返回结果。
  */
 export interface LLMNodeConfig {
   /**
-   * 模型提供方+名称，这里和后端保持简化，只存模型名即可
-   * 例如：doubao-seed-1-6-251015
+   * 关联的智能体UUID
    */
-  model: string
+  agent_uuid: string
   /**
-   * 系统提示词，由前端在创建节点时给出合理默认值，用户可编辑
-   */
-  systemPrompt: string
-  /**
-   * 用户提示词模板，由用户填写。后端会在执行时把当前上下文 JSON
-   * 以说明文字形式附加在该模板后面。
+   * 提示词，支持变量替换
    */
   prompt: string
+  /**
+   * 温度参数，范围0-2，默认0.7
+   */
   temperature?: number
-  maxTokens?: number
+  /**
+   * 最大生成token数，默认2000
+   */
+  max_tokens?: number
+}
+
+/**
+ * HTTP请求节点配置
+ */
+export interface HTTPNodeConfig {
+  /**
+   * 请求URL，支持变量替换
+   */
+  url: string
+  /**
+   * 请求方法，支持GET/POST，默认GET
+   */
+  method?: 'GET' | 'POST'
+  /**
+   * 请求头，支持变量替换
+   */
+  headers?: Record<string, string>
+  /**
+   * 请求体（POST请求时使用），支持变量替换
+   */
+  body?: Record<string, any>
+}
+
+/**
+ * 知识库检索节点配置
+ */
+export interface KnowledgeNodeConfig {
+  /**
+   * 知识库ID
+   */
+  knowledge_base_id: number
+  /**
+   * 查询文本，支持变量替换
+   */
+  query: string
+  /**
+   * 返回最相似的K个文档块，范围1-10，默认5
+   */
+  top_k?: number
+  /**
+   * 相似度阈值，范围0-1，默认0.7
+   */
+  similarity_threshold?: number
+}
+
+/**
+ * 字符串处理节点配置
+ */
+export interface StringNodeConfig {
+  /**
+   * 操作类型
+   */
+  operation: 'concat' | 'replace' | 'substring' | 'format' | 'trim' | 'upper' | 'lower'
+  /**
+   * 输入字符串，支持变量替换
+   */
+  input_string: string
+  /**
+   * 处理参数，根据操作类型不同而不同
+   */
+  parameters?: Record<string, any>
 }
 
 /**
@@ -96,6 +156,9 @@ export type NodeConfig =
   | StartNodeConfig
   | IntentNodeConfig
   | LLMNodeConfig
+  | HTTPNodeConfig
+  | KnowledgeNodeConfig
+  | StringNodeConfig
   | PluginNodeConfig
   | EndNodeConfig
 
@@ -133,6 +196,30 @@ export interface LLMWorkflowNode extends BaseWorkflowNode {
 }
 
 /**
+ * HTTP请求节点
+ */
+export interface HTTPWorkflowNode extends BaseWorkflowNode {
+  type: 'http'
+  config: HTTPNodeConfig
+}
+
+/**
+ * 知识库检索节点
+ */
+export interface KnowledgeWorkflowNode extends BaseWorkflowNode {
+  type: 'knowledge'
+  config: KnowledgeNodeConfig
+}
+
+/**
+ * 字符串处理节点
+ */
+export interface StringWorkflowNode extends BaseWorkflowNode {
+  type: 'string'
+  config: StringNodeConfig
+}
+
+/**
  * 插件节点
  */
 export interface PluginWorkflowNode extends BaseWorkflowNode {
@@ -155,6 +242,9 @@ export type WorkflowNode =
   | StartWorkflowNode
   | IntentWorkflowNode
   | LLMWorkflowNode
+  | HTTPWorkflowNode
+  | KnowledgeWorkflowNode
+  | StringWorkflowNode
   | PluginWorkflowNode
   | EndWorkflowNode
 
