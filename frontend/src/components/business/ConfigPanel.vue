@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { pluginApi, agentApi, knowledgeApi, workflowApi } from '@/api'
+import { pluginApi, agentApi, knowledgeApi } from '@/api'
 import type { Plugin, Operation, PathItem } from '@/types/plugin'
 import type { ModelConfig } from '@/types/agent'
 import type { KnowledgeBase } from '@/types/knowledge-base'
@@ -317,84 +317,6 @@ onMounted(() => {
   initModelConfig()
 })
 
-// 打开工作流编辑页面
-const openWorkflowEditor = async () => {
-  try {
-    // 如果已经绑定了工作流，直接跳转
-    if (props.workflowId && props.agentId) {
-      router.push({
-        name: 'WorkflowEdit',
-        params: { id: props.workflowId },
-        query: { agentId: props.agentId },
-      })
-      return
-    }
-
-    // 没有工作流时，为当前智能体创建一个默认工作流
-    if (!props.agentId) {
-      alert('请先保存智能体，再配置工作流')
-      return
-    }
-
-    const defaultWorkflow: import('@/types/workflow').WorkflowForm = {
-      name: '智能体工作流',
-      description: '由智能体自动创建的默认工作流',
-      version: 'v1',
-      nodes: [
-        {
-          id: 'start',
-          type: 'start',
-          name: '开始',
-          position: { x: 80, y: 200 },
-          config: {},
-        },
-        {
-          id: 'llm-1',
-          type: 'llm',
-          name: '大模型',
-          position: { x: 320, y: 200 },
-          config: {
-            agent_uuid: '',
-            prompt:
-              '根据下面的用户问题和工作流上下文回答用户。请使用简明、友好且准确的中文回答用户的问题。',
-            temperature: 0.7,
-            max_tokens: 2000,
-          },
-        },
-        {
-          id: 'end',
-          type: 'end',
-          name: '结束',
-          position: { x: 560, y: 200 },
-          config: {},
-        },
-      ],
-      edges: [
-        { id: 'e-start-llm-1', source: 'start', target: 'llm-1' },
-        { id: 'e-llm-1-end', source: 'llm-1', target: 'end' },
-      ],
-      config: {
-        timeout: 60,
-        retry: 0,
-        parallel: false,
-        version: 'v1',
-      },
-    }
-
-    const created = await workflowApi.create(defaultWorkflow)
-    await agentApi.update(props.agentId, { workflowId: created.id })
-    emit('update:workflowId', created.id)
-
-    router.push({
-      name: 'WorkflowEdit',
-      params: { id: created.id },
-      query: { agentId: props.agentId },
-    })
-  } catch (error: any) {
-    console.error('打开工作流编辑器失败:', error)
-    alert('打开工作流编辑器失败: ' + (error?.message || '未知错误'))
-  }
-}
 </script>
 
 <template>
@@ -619,7 +541,7 @@ const openWorkflowEditor = async () => {
               使用工作流可以通过「开始 → 意图识别 → 大模型 → 结束」等节点，编排更复杂的回复流程。
             </div>
           </div>
-          <button class="workflow-btn" @click="openWorkflowEditor">
+          <button class="workflow-btn" @click="router.push('/workflow/1/editor')">
             {{ workflowId ? '编辑工作流' : '创建并编辑工作流' }}
           </button>
         </div>

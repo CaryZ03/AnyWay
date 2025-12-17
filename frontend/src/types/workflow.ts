@@ -10,26 +10,44 @@ export interface NodePosition {
   y: number
 }
 
+export interface InputBinding {
+  nodeId: string
+  fieldName: string
+  fieldType: string
+}
+
+export interface BaseNodeConfig {
+  name: string
+  /**
+   * 输出配置，支持任意 JSON 格式
+   */
+  output: any
+}
+
 /**
  * 开始节点配置
  *
  * 对于当前实现，开始节点只负责把「用户输入」包装成统一的输入数据，
  * 实际字段在运行时由后端注入，这里不需要额外配置，因此保持为空对象。
  */
-export interface StartNodeConfig {
+export interface StartNodeConfig extends BaseNodeConfig {
   input_text: string
 }
 
 /**
  * LLM 节点配置
  */
-export interface LLMNodeConfig {
+export interface LLMNodeConfig extends BaseNodeConfig {
   /**
    * 关联的智能体UUID
    */
   agent_uuid: string
   /**
-   * 提示词，支持变量替换
+   * 输入，支持变量替换
+   */
+  input: Record<string, any> | Record<string, InputBinding>
+  /**
+   * 提示词
    */
   prompt: string
   /**
@@ -45,11 +63,11 @@ export interface LLMNodeConfig {
 /**
  * HTTP请求节点配置
  */
-export interface HTTPNodeConfig {
+export interface HTTPNodeConfig extends BaseNodeConfig {
   /**
    * 请求URL，支持变量替换
    */
-  url: string
+  url: string | InputBinding
   /**
    * 请求方法，支持GET/POST，默认GET
    */
@@ -57,17 +75,17 @@ export interface HTTPNodeConfig {
   /**
    * 请求头，支持变量替换
    */
-  headers?: Record<string, string>
+  headers?: Record<string, string> | Record<string, InputBinding>
   /**
    * 请求体（POST请求时使用），支持变量替换
    */
-  body?: Record<string, any>
+  body?: Record<string, any> | Record<string, InputBinding>
 }
 
 /**
  * 知识库检索节点配置
  */
-export interface KnowledgeNodeConfig {
+export interface KnowledgeNodeConfig extends BaseNodeConfig {
   /**
    * 知识库ID
    */
@@ -75,7 +93,7 @@ export interface KnowledgeNodeConfig {
   /**
    * 查询文本，支持变量替换
    */
-  query: string
+  query: string | InputBinding
   /**
    * 返回最相似的K个文档块，范围1-10，默认5
    */
@@ -89,11 +107,11 @@ export interface KnowledgeNodeConfig {
 /**
  * 意图识别节点配置
  */
-export interface IntentNodeConfig {
+export interface IntentNodeConfig extends BaseNodeConfig {
   /**
    * 输入文本，支持变量替换
    */
-  input_text: string
+  input: string | InputBinding
   /**
    * 意图类别列表
    */
@@ -117,7 +135,7 @@ export interface IntentNodeConfig {
 /**
  * 字符串处理节点配置
  */
-export interface StringNodeConfig {
+export interface StringNodeConfig extends BaseNodeConfig {
   /**
    * 操作类型
    */
@@ -125,20 +143,11 @@ export interface StringNodeConfig {
   /**
    * 输入字符串，支持变量替换
    */
-  input_string: string
+  input_string: string | InputBinding
   /**
    * 处理参数，根据操作类型不同而不同
    */
   parameters?: Record<string, any>
-}
-
-/**
- * 插件节点配置
- */
-export interface PluginNodeConfig {
-  pluginId: number
-  operation: string
-  parameters?: Record<string, string>
 }
 
 /**
@@ -147,8 +156,8 @@ export interface PluginNodeConfig {
  * 当前实现中，结束节点只是把工作流上下文中的最终 answer 字段作为输出，
  * 因此暂时不需要额外配置。
  */
-export interface EndNodeConfig {
-  output_text: string
+export interface EndNodeConfig extends BaseNodeConfig {
+  output_text: string | InputBinding
 }
 
 /**
@@ -161,7 +170,6 @@ export type NodeConfig =
   | HTTPNodeConfig
   | KnowledgeNodeConfig
   | StringNodeConfig
-  | PluginNodeConfig
   | EndNodeConfig
 
 /**
@@ -241,24 +249,6 @@ export type Node =
   | EndNode
 
 /**
- * 字段绑定：将源节点的输出字段绑定到目标节点的输入字段
- */
-export interface FieldBinding {
-  /**
-   * 源节点ID
-   */
-  sourceNodeId: string
-  /**
-   * 源节点输出字段名
-   */
-  sourceField: string
-  /**
-   * 目标节点输入字段名
-   */
-  targetField: string
-}
-
-/**
  * 工作流边
  */
 export interface WorkflowEdge {
@@ -266,10 +256,6 @@ export interface WorkflowEdge {
   source: string
   target: string
   condition?: string
-  /**
-   * 字段绑定列表：定义从源节点到目标节点的数据绑定
-   */
-  bindings?: FieldBinding[]
 }
 
 /**
@@ -298,50 +284,6 @@ export interface Workflow {
   config: string | WorkflowConfig  // 可能是 JSON 字符串，也可能是已解析的对象
   createdAt?: string
   updatedAt?: string
-}
-
-/**
- * 节点字段定义：描述节点的输入和输出字段
- */
-export interface NodeFieldDefinition {
-  /**
-   * 字段名
-   */
-  name: string
-  /**
-   * 字段显示名称
-   */
-  label: string
-  /**
-   * 字段类型
-   */
-  type: 'string' | 'number' | 'object' | 'array'
-  /**
-   * 是否必需
-   */
-  required?: boolean
-  /**
-   * 字段描述
-   */
-  description?: string
-}
-
-/**
- * 节点类型元数据：定义每种节点类型的输入和输出字段
- */
-export interface NodeTypeMetadata {
-  /**
-   * 节点类型
-   */
-  type: Node['type']
-  /**
-   * 输入字段列表（可绑定的字段）
-   */
-  inputFields: NodeFieldDefinition[]
-  /**
-   * 输出字段列表（可被绑定的字段）
-   */
-  outputFields: NodeFieldDefinition[]
 }
 
 /**
