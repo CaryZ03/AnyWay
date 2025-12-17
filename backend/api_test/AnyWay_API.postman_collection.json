@@ -198,7 +198,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"测试工作流\",\n  \"description\": \"这是一个测试工作流\",\n  \"definition\": {\n    \"nodes\": [\n      {\n        \"id\": \"node1\",\n        \"type\": \"start\",\n        \"name\": \"开始节点\"\n      },\n      {\n        \"id\": \"node2\",\n        \"type\": \"llm\",\n        \"name\": \"LLM节点\",\n        \"config\": {\n          \"model\": \"gpt-3.5-turbo\"\n        }\n      }\n    ],\n    \"edges\": [\n      {\n        \"source\": \"node1\",\n        \"target\": \"node2\"\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"name\": \"示例工作流\",\n  \"description\": \"包含开始、意图识别、LLM 和结束节点的示例工作流\",\n  \"definition\": {\n    \"nodes\": [\n      {\n        \"id\": \"start\",\n        \"type\": \"start\",\n        \"name\": \"开始\",\n        \"config\": {}\n      },\n      {\n        \"id\": \"intent-1\",\n        \"type\": \"intent\",\n        \"name\": \"意图识别\",\n        \"config\": {\n          \"intents\": [\n            {\n              \"id\": \"faq\",\n              \"name\": \"常规问答\",\n              \"description\": \"回答一般性问题\",\n              \"examples\": [\n                \"你是谁？\",\n                \"介绍一下你\"\n              ]\n            },\n            {\n              \"id\": \"weather\",\n              \"name\": \"天气查询\",\n              \"description\": \"查询天气相关问题\",\n              \"examples\": [\n                \"今天天气怎么样？\",\n                \"上海明天会下雨吗？\"\n              ]\n            }\n          ]\n        }\n      },\n      {\n        \"id\": \"llm-1\",\n        \"type\": \"llm\",\n        \"name\": \"LLM 回答\",\n        \"config\": {\n          \"model\": \"doubao-seed-1-6-251015\",\n          \"systemPrompt\": \"你是一个中文 AI 助手，请用简体中文回答用户问题。\",\n          \"prompt\": \"请根据上游识别的意图以及上下文 JSON，生成对用户友好的回答。\"\n        }\n      },\n      {\n        \"id\": \"end\",\n        \"type\": \"end\",\n        \"name\": \"结束\",\n        \"config\": {}\n      }\n    ],\n    \"edges\": [\n      {\n        \"id\": \"e-start-intent-1\",\n        \"source\": \"start\",\n        \"target\": \"intent-1\"\n      },\n      {\n        \"id\": \"e-intent-1-llm-1\",\n        \"source\": \"intent-1\",\n        \"target\": \"llm-1\"\n      },\n      {\n        \"id\": \"e-llm-1-end\",\n        \"source\": \"llm-1\",\n        \"target\": \"end\"\n      }\n    ],\n    \"config\": {\n      \"timeout\": 60,\n      \"retry\": 0,\n      \"parallel\": false\n    }\n  },\n  \"status\": \"draft\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/workflows/",
@@ -231,7 +231,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"input_data\": {\n    \"message\": \"测试输入\"\n  }\n}"
+              "raw": "{\n  \"input_data\": {\n    \"user_input\": \"今天天气怎么样？\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/workflows/1/execute/",
