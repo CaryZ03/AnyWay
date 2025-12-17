@@ -7,19 +7,19 @@ import type { BackendDocument, SearchResult } from '@/types/api'
  * 严格按照 Postman 文档实现：https://kenbers.cyou/kb/*
  * 
  * Postman 文档接口：
- * 1. POST /kb/create - 创建知识库
- * 2. GET /kb/list?user_id=1 - 查看某用户的所有知识库
- * 3. GET /kb/documents?user_id=1&knowledge_base_id=1 - 查看某个知识库所有文档
- * 4. POST /kb/upload - 上传文档
- * 5. DELETE /kb/document/1?user_id=1 - 删除文档
- * 6. DELETE /kb/delete?user_id=1&knowledge_base_id=1 - 删除知识库
- * 7. POST /kb/query - 查询知识库信息
+ * 1. POST /create - 创建知识库
+ * 2. GET /list?user_id=1 - 查看某用户的所有知识库
+ * 3. GET /documents?user_id=1&knowledge_base_id=1 - 查看某个知识库所有文档
+ * 4. POST /upload - 上传文档
+ * 5. DELETE /document/1?user_id=1 - 删除文档
+ * 6. DELETE /delete?user_id=1&knowledge_base_id=1 - 删除知识库
+ * 7. POST /query - 查询知识库信息
  */
 
 // 知识库服务基础URL
 // 开发环境：通过 Vite 代理访问（vite.config.ts 中配置了 /kb 代理）
-// 生产环境：直接访问 https://kenbers.cyou
-const KB_BASE_URL = import.meta.env.PROD ? 'https://kenbers.cyou' : ''
+// 生产环境：通过 Nginx 代理访问（nginx.conf 中配置了 /kb 代理）
+// 统一使用相对路径 /kb，避免 CORS 问题
 
 // 获取当前用户ID（暂时使用固定值，后续可以从用户系统获取）
 const getUserId = (): number => {
@@ -29,7 +29,7 @@ const getUserId = (): number => {
 
 // 创建专门用于知识库服务的 axios 实例
 const kbAxiosInstance: AxiosInstance = axios.create({
-  baseURL: KB_BASE_URL,
+  baseURL: '/kb',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ function normalizeDocumentStatus(doc: any): 'pending' | 'processing' | 'complete
 export const knowledgeApi = {
   /**
    * 1. 创建知识库
-   * POST /kb/create
+   * POST /create
    * Body: { user_id: number, name: string, description?: string }
    */
   create: async (form: Partial<KnowledgeBaseForm>, userId?: number): Promise<KnowledgeBase> => {
@@ -160,7 +160,7 @@ export const knowledgeApi = {
       throw new Error('知识库名称不能为空')
     }
     
-    const response = await kbAxiosInstance.post('/kb/create', {
+    const response = await kbAxiosInstance.post('/create', {
       user_id: uid,
       name: form.name,
       description: form.description || ''
@@ -173,11 +173,11 @@ export const knowledgeApi = {
 
   /**
    * 2. 查看某用户的所有知识库
-   * GET /kb/list?user_id=1
+   * GET /list?user_id=1
    */
   getList: async (userId?: number): Promise<KnowledgeBase[]> => {
     const uid = userId || getUserId()
-    const response: any = await kbAxiosInstance.get('/kb/list', {
+    const response: any = await kbAxiosInstance.get('/list', {
       params: { user_id: uid }
     })
     
@@ -188,7 +188,7 @@ export const knowledgeApi = {
 
   /**
    * 获取知识库详情（通过列表接口查找）
-   * GET /kb/list?user_id=1，然后查找指定 id
+   * GET /list?user_id=1，然后查找指定 id
    */
   getDetail: async (id: number, userId?: number): Promise<KnowledgeBase> => {
     const list = await knowledgeApi.getList(userId)
@@ -211,11 +211,11 @@ export const knowledgeApi = {
 
   /**
    * 6. 删除知识库
-   * DELETE /kb/delete?user_id=1&knowledge_base_id=1
+   * DELETE /delete?user_id=1&knowledge_base_id=1
    */
   delete: async (id: number, userId?: number): Promise<void> => {
     const uid = userId || getUserId()
-    await kbAxiosInstance.delete('/kb/delete', {
+    await kbAxiosInstance.delete('/delete', {
       params: {
         user_id: uid,
         knowledge_base_id: id
@@ -225,7 +225,7 @@ export const knowledgeApi = {
 
   /**
    * 4. 上传文档到知识库
-   * POST /kb/upload
+   * POST /upload
    * FormData: { user_id: number, knowledge_base_id: number, file: File }
    */
   uploadDocument: async (knowledgeBaseId: number, file: File, userId?: number): Promise<BackendDocument> => {
@@ -235,7 +235,7 @@ export const knowledgeApi = {
     formData.append('knowledge_base_id', knowledgeBaseId.toString())
     formData.append('file', file)
     
-    const response: any = await kbAxiosInstance.post('/kb/upload', formData, {
+    const response: any = await kbAxiosInstance.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -248,11 +248,11 @@ export const knowledgeApi = {
 
   /**
    * 3. 查看某个知识库所有文档
-   * GET /kb/documents?user_id=1&knowledge_base_id=1
+   * GET /documents?user_id=1&knowledge_base_id=1
    */
   getDocuments: async (knowledgeBaseId: number, userId?: number): Promise<BackendDocument[]> => {
     const uid = userId || getUserId()
-    const response: any = await kbAxiosInstance.get('/kb/documents', {
+    const response: any = await kbAxiosInstance.get('/documents', {
       params: {
         user_id: uid,
         knowledge_base_id: knowledgeBaseId
@@ -273,11 +273,11 @@ export const knowledgeApi = {
 
   /**
    * 5. 删除文档
-   * DELETE /kb/document/{document_id}?user_id=1
+   * DELETE /document/{document_id}?user_id=1
    */
   deleteDocument: async (documentId: number, userId?: number): Promise<void> => {
     const uid = userId || getUserId()
-    await kbAxiosInstance.delete(`/kb/document/${documentId}`, {
+    await kbAxiosInstance.delete(`/document/${documentId}`, {
       params: {
         user_id: uid
       }
@@ -286,12 +286,12 @@ export const knowledgeApi = {
 
   /**
    * 7. 查询知识库信息（RAG搜索）
-   * POST /kb/query
+   * POST /query
    * Body: { user_id: number, knowledge_base_id: number, query: string, top_k: number }
    */
   query: async (knowledgeBaseId: number, query: string, topK: number = 3, userId?: number): Promise<SearchResult[]> => {
     const uid = userId || getUserId()
-    const response: any = await kbAxiosInstance.post('/kb/query', {
+    const response: any = await kbAxiosInstance.post('/query', {
       user_id: uid,
       knowledge_base_id: knowledgeBaseId,
       query: query,
