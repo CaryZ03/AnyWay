@@ -185,30 +185,82 @@ Body (raw JSON):
 ```
 ```json
 {
-  "name": "测试工作流",
-  "description": "这是一个测试工作流",
+  "name": "示例工作流",
+  "description": "包含开始、意图识别、LLM 和结束节点的示例工作流",
   "definition": {
     "nodes": [
       {
-        "id": "node1",
+        "id": "start",
         "type": "start",
-        "name": "开始节点"
+        "name": "开始",
+        "config": {}
       },
       {
-        "id": "node2",
-        "type": "llm",
-        "name": "LLM节点",
+        "id": "intent-1",
+        "type": "intent",
+        "name": "意图识别",
         "config": {
-          "model": "gpt-3.5-turbo"
+          "intents": [
+            {
+              "id": "faq",
+              "name": "常规问答",
+              "description": "回答一般性问题",
+              "examples": [
+                "你是谁？",
+                "介绍一下你"
+              ]
+            },
+            {
+              "id": "weather",
+              "name": "天气查询",
+              "description": "查询天气相关问题",
+              "examples": [
+                "今天天气怎么样？",
+                "上海明天会下雨吗？"
+              ]
+            }
+          ]
         }
+      },
+      {
+        "id": "llm-1",
+        "type": "llm",
+        "name": "LLM 回答",
+        "config": {
+          "model": "doubao-seed-1-6-251015",
+          "systemPrompt": "你是一个中文 AI 助手，请用简体中文回答用户问题。",
+          "prompt": "请根据上游识别的意图以及上下文 JSON，生成对用户友好的回答。"
+        }
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "name": "结束",
+        "config": {}
       }
     ],
     "edges": [
       {
-        "source": "node1",
-        "target": "node2"
+        "id": "e-start-intent-1",
+        "source": "start",
+        "target": "intent-1"
+      },
+      {
+        "id": "e-intent-1-llm-1",
+        "source": "intent-1",
+        "target": "llm-1"
+      },
+      {
+        "id": "e-llm-1-end",
+        "source": "llm-1",
+        "target": "end"
       }
-    ]
+    ],
+    "config": {
+      "timeout": 60,
+      "retry": 0,
+      "parallel": false
+    }
   }
 }
 ```
@@ -250,7 +302,7 @@ Body (raw JSON):
 ```json
 {
   "input_data": {
-    "message": "测试输入"
+    "user_input": "今天天气怎么样？"
   }
 }
 ```

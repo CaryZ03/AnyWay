@@ -1,257 +1,499 @@
 """
-工作流执行引擎
+Workflow 校验与执行引擎。
 
-目前支持的节点类型：
-- start  ：开始节点，直接透传输入；
-- intent ：意图识别节点，调用大模型做分类，要求严格 JSON 输出；
-- llm    ：大模型节点，根据上下文生成最终回答，要求严格 JSON 输出；
-- end    ：结束节点，返回上下文中的最终 answer。
+参考 teacher's backend 中的 WorkflowExecutor / WorkflowValidator，并按 AnyWay
+项目自己的数据结构（Workflow.definition）做了适配：
+
+- Workflow.definition: {"nodes": [...], "edges": [...], "config": {...}}
+- 节点类型: start / intent / llm / end  （plugin 预留，暂未实现）
 """
-from datetime import datetime
+from __future__ import annotations
+
 import json
 import logging
-from typing import Any, Dict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from django.utils import timezone
 
 from apps.llm.services import get_llm_service
+
+from .models import Workflow, WorkflowExecution
 
 logger = logging.getLogger(__name__)
 
 
+class WorkflowExecutionError(Exception):
+    """工作流执行相关的错误。"""
+
+
+@dataclass
+class _Node:
+    id: str
+    type: str
+    config: Dict[str, Any]
+
+
+@dataclass
+class _Edge:
+    id: str
+    source: str
+    target: str
+
+
+class WorkflowValidator:
+    """
+    简单的 DAG 校验器：
+    - 必须有且只有一个 start 节点
+    - 必须有且只有一个 end 节点
+    - 所有边的 source / target 必须存在
+    - 不允许有环
+    """
+
+    @staticmethod
+    def _build_nodes_edges(definition: Dict[str, Any]) -> Tuple[List[_Node], List[_Edge]]:
+        raw_nodes = definition.get("nodes") or []
+        raw_edges = definition.get("edges") or []
+        nodes: List[_Node] = []
+        edges: List[_Edge] = []
+
+        for n in raw_nodes:
+            if not isinstance(n, dict):
+                continue
+
+            node_id = n.get("id")
+            node_type = n.get("type")
+            if not node_id or not node_type:
+                continue
+
+            nodes.append(
+                _Node(
+                    id=str(node_id),
+                    type=str(node_type),
+                    config=n.get("config") or n.get("data") or {},
+                )
+            )
+
+        for e in raw_edges:
+            if not isinstance(e, dict):
+                continue
+
+            edge_id = e.get("id") or f"{e.get('source')}->{e.get('target')}"
+            source = e.get("source")
+            target = e.get("target")
+            if not source or not target:
+                continue
+
+            edges.append(
+                _Edge(
+                    id=str(edge_id),
+                    source=str(source),
+                    target=str(target),
+                )
+            )
+
+        return nodes, edges
+
+    @staticmethod
+    def validate(definition: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+        errors: List[str] = []
+        warnings: List[str] = []
+
+        nodes, edges = WorkflowValidator._build_nodes_edges(definition)
+        if not nodes:
+            errors.append("工作流必须至少包含一个节点")
+            return errors, warnings
+
+        start_nodes = [n for n in nodes if n.type == "start"]
+        end_nodes = [n for n in nodes if n.type == "end"]
+
+        if len(start_nodes) == 0:
+            errors.append("工作流必须包含一个开始节点（type = 'start'）")
+        elif len(start_nodes) > 1:
+            errors.append(f"工作流只能包含一个开始节点，当前有 {len(start_nodes)} 个")
+
+        if len(end_nodes) == 0:
+            errors.append("工作流必须包含一个结束节点（type = 'end'）")
+        elif len(end_nodes) > 1:
+            errors.append(f"工作流只能包含一个结束节点，当前有 {len(end_nodes)} 个")
+
+        if errors:
+            return errors, warnings
+
+        node_ids = {n.id for n in nodes}
+        for e in edges:
+            if e.source not in node_ids:
+                errors.append(f"边 '{e.id}' 的源节点 '{e.source}' 不存在")
+            if e.target not in node_ids:
+                errors.append(f"边 '{e.id}' 的目标节点 '{e.target}' 不存在")
+
+        if errors:
+            return errors, warnings
+
+        # 检测环（DFS）
+        graph: Dict[str, List[str]] = {n.id: [] for n in nodes}
+        for e in edges:
+            if e.source in graph:
+                graph[e.source].append(e.target)
+
+        state: Dict[str, int] = {n.id: 0 for n in nodes}  # 0=未访问,1=访问中,2=已访问
+
+        def dfs(node_id: str) -> bool:
+            if state[node_id] == 1:
+                return True
+            if state[node_id] == 2:
+                return False
+            state[node_id] = 1
+            for nxt in graph.get(node_id, []):
+                if dfs(nxt):
+                    return True
+            state[node_id] = 2
+            return False
+
+        for n in nodes:
+            if state[n.id] == 0 and dfs(n.id):
+                errors.append("工作流中存在循环依赖，必须是无环图(DAG)")
+                break
+
+        # 可达性检测：从 start 出发，检查是否有不可达节点
+        start_id = start_nodes[0].id
+        visited = {start_id}
+        queue = [start_id]
+        while queue:
+            cur = queue.pop(0)
+            for nxt in graph.get(cur, []):
+                if nxt not in visited:
+                    visited.add(nxt)
+                    queue.append(nxt)
+        unreachable = node_ids - visited
+        if unreachable:
+            warnings.append(
+                f"以下节点从开始节点不可达: {', '.join(sorted(unreachable))}"
+            )
+
+        return errors, warnings
+
+    @staticmethod
+    def assert_valid(definition: Dict[str, Any]) -> None:
+        errors, _warnings = WorkflowValidator.validate(definition)
+        if errors:
+            raise WorkflowExecutionError("工作流验证失败: " + "; ".join(errors))
+
+    @staticmethod
+    def topological_order(definition: Dict[str, Any]) -> List[_Node]:
+        """返回拓扑排序后的节点列表。"""
+        nodes, edges = WorkflowValidator._build_nodes_edges(definition)
+        node_map = {n.id: n for n in nodes}
+        in_degree: Dict[str, int] = {n.id: 0 for n in nodes}
+        graph: Dict[str, List[str]] = {n.id: [] for n in nodes}
+
+        for e in edges:
+            if e.source in graph and e.target in in_degree:
+                graph[e.source].append(e.target)
+                in_degree[e.target] += 1
+
+        queue = [nid for nid, deg in in_degree.items() if deg == 0]
+        ordered: List[_Node] = []
+
+        while queue:
+            cur = queue.pop(0)
+            node = node_map.get(cur)
+            if node:
+                ordered.append(node)
+            for nxt in graph.get(cur, []):
+                in_degree[nxt] -= 1
+                if in_degree[nxt] == 0:
+                    queue.append(nxt)
+
+        return ordered
+
+
 class WorkflowEngine:
-    """工作流执行引擎"""
-    
-    def execute(self, workflow, input_data, execution):
+    """工作流执行引擎，按 DAG 顺序依次执行各类节点。"""
+
+    def __init__(self) -> None:
+        self.context: Dict[str, Any] = {}
+        self.node_status: Dict[str, Any] = {}
+
+    def execute(
+        self, workflow: Workflow, input_data: Dict[str, Any], execution: WorkflowExecution
+    ) -> Dict[str, Any]:
         """
-        执行工作流
-        
-        Args:
-            workflow: 工作流对象
-            input_data: 输入数据
-            execution: 执行记录对象
-        
-        Returns:
-            执行结果
+        执行指定工作流。
+
+        :param workflow: Workflow 实例（包含 definition）
+        :param input_data: 执行输入数据，前端 / 智能体会传入 {user_input: "..."} 等结构
+        :param execution: WorkflowExecution 记录，用于追踪执行过程
+        :return: 最终输出（通常包含 answer 字段）
         """
-        logger.info(f'开始执行工作流: {workflow.name}')
-        
-        # 更新执行状态
-        execution.status = 'running'
-        execution.started_at = datetime.now()
-        execution.save()
-        
-        try:
-            # 获取工作流定义
-            definition = workflow.definition
-            nodes = definition.get('nodes', [])
-            edges = definition.get('edges', [])
-            
-            # 构建节点依赖图
-            node_map = {node['id']: node for node in nodes}
-            node_status = {}
-            
-            # 按拓扑顺序执行节点
-            # TODO: 实现完整的DAG执行逻辑
-            output_data = self._execute_nodes(node_map, edges, input_data, node_status)
-            
-            # 更新执行记录
-            execution.status = 'completed'
-            execution.output_data = output_data
-            execution.node_status = node_status
-            execution.completed_at = datetime.now()
-            execution.save()
-            
-            logger.info(f'工作流执行完成: {workflow.name}')
-            return output_data
-            
-        except Exception as e:
-            logger.error(f'工作流执行失败: {workflow.name}, 错误: {str(e)}')
-            execution.status = 'failed'
-            execution.error_message = str(e)
-            execution.completed_at = datetime.now()
-            execution.save()
-            raise
-    
-    def _execute_nodes(self, node_map, edges, input_data, node_status):
-        """
-        执行节点
-        
-        Args:
-            node_map: 节点映射
-            edges: 边列表
-            input_data: 输入数据
-            node_status: 节点状态记录
-        
-        Returns:
-            输出数据
-        """
-        # 简化版本：顺序执行所有节点
-        # TODO: 实现完整的拓扑排序和并行执行
-        
-        current_data = input_data
-        
-        for node_id, node in node_map.items():
-            node_type = node.get('type', 'unknown')
-            node_config = node.get('config', {})
-            
-            logger.info(f'执行节点: {node_id}, 类型: {node_type}')
-            
+        definition = workflow.definition or {}
+        if not isinstance(definition, dict):
+            raise WorkflowExecutionError("工作流定义格式错误，definition 必须是对象")
+
+        # 校验 DAG 基本合法性
+        WorkflowValidator.assert_valid(definition)
+
+        # 初始化执行上下文
+        self.context = {}
+        self.node_status = {}
+        if isinstance(input_data, dict):
+            self.context.update(input_data)
+        else:
+            self.context["input"] = input_data
+
+        logger.info(
+            "开始执行工作流 %s，输入: %s",
+            workflow.id,
+            json.dumps(self.context, ensure_ascii=False),
+        )
+
+        execution.status = "running"
+        execution.started_at = timezone.now()
+        execution.node_status = {}
+        execution.error_message = None
+        execution.save(
+            update_fields=["status", "started_at", "node_status", "error_message"]
+        )
+
+        error: Exception | None = None
+
+        ordered_nodes = WorkflowValidator.topological_order(definition)
+        for node in ordered_nodes:
+            start_ts = timezone.now()
+            node_result: Dict[str, Any] | None = None
+            node_error: str | None = None
+            status = "success"
+
             try:
-                # 根据节点类型执行不同的逻辑
-                result = self._execute_node(node_type, node_config, current_data)
-                node_status[node_id] = {
-                    'status': 'completed',
-                    'output': result
-                }
-                current_data = result
-                
-            except Exception as e:
-                logger.error(f'节点执行失败: {node_id}, 错误: {str(e)}')
-                node_status[node_id] = {
-                    'status': 'failed',
-                    'error': str(e)
-                }
-                raise
-        
-        return current_data
-    
-    def _execute_node(self, node_type: str, config: Dict[str, Any], input_data: Dict[str, Any]):
+                node_result = self._execute_node(node)
+                if isinstance(node_result, dict):
+                    # 将节点输出合并到全局上下文，方便后续节点引用
+                    self.context.update(node_result)
+                elif node_result is not None:
+                    self.context[node.id] = node_result
+            except Exception as exc:  # noqa: BLE001 - 需要兜底任何异常
+                error = exc
+                status = "failed"
+                node_error = str(exc)
+                logger.error(
+                    "节点 %s(%s) 执行失败: %s",
+                    node.id,
+                    node.type,
+                    str(exc),
+                    exc_info=True,
+                )
+
+            end_ts = timezone.now()
+            duration_ms = int((end_ts - start_ts).total_seconds() * 1000)
+
+            self.node_status[node.id] = {
+                "node_id": node.id,
+                "type": node.type,
+                "status": status,
+                "started_at": start_ts.isoformat(),
+                "completed_at": end_ts.isoformat(),
+                "duration_ms": duration_ms,
+                "output": node_result,
+                "error": node_error,
+            }
+
+            # 如果某个节点失败，则终止后续执行
+            if status == "failed":
+                break
+
+        # 组装最终输出：优先使用 answer 字段
+        if "answer" in self.context:
+            final_output: Dict[str, Any] = {"answer": self.context.get("answer")}
+        else:
+            # 没有 answer 时，返回完整上下文（便于调试）
+            final_output = dict(self.context)
+
+        execution.output_data = final_output
+        execution.node_status = self.node_status
+        execution.completed_at = timezone.now()
+        execution.status = "failed" if error else "completed"
+        if error:
+            execution.error_message = str(error)
+        execution.save(
+            update_fields=[
+                "status",
+                "output_data",
+                "node_status",
+                "completed_at",
+                "error_message",
+            ]
+        )
+
+        if error:
+            raise WorkflowExecutionError(str(error))
+
+        logger.info("工作流 %s 执行完成，状态: %s", workflow.id, execution.status)
+        return final_output
+
+    # === 各类节点执行逻辑 ===
+
+    def _execute_node(self, node: _Node) -> Dict[str, Any] | None:
+        node_type = node.type
+        cfg = node.config or {}
+
+        if node_type == "start":
+            return self._execute_start_node(cfg)
+        if node_type == "intent":
+            return self._execute_intent_node(cfg)
+        if node_type == "llm":
+            return self._execute_llm_node(cfg)
+        if node_type == "plugin":
+            # 预留：未来支持插件节点，这里先给出清晰错误提示
+            raise WorkflowExecutionError("插件节点暂未实现")
+        if node_type == "end":
+            return self._execute_end_node(cfg)
+
+        raise WorkflowExecutionError(f"不支持的节点类型: {node_type}")
+
+    def _execute_start_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
-        执行单个节点
-        
-        Args:
-            node_type: 节点类型
-            config: 节点配置
-            input_data: 输入数据
-        
-        Returns:
-            节点输出（会与原始 input_data 合并）
+        开始节点：将输入统一包装为上下文。
+        - 如果已有 user_input，则直接透传；
+        - 否则将整个 context 视为 user_input 的载体。
         """
-        # 开始/结束节点：简单透传
-        if node_type in ('start', 'end'):
-            return input_data
+        user_input = self.context.get("user_input")
+        if user_input is None:
+            # 尽量从 input / message 等字段中推断
+            user_input = (
+                self.context.get("input")
+                or self.context.get("message")
+                or json.dumps(self.context, ensure_ascii=False)
+            )
+            self.context["user_input"] = user_input
 
-        # 意图识别节点
-        if node_type == 'intent':
-            return self._execute_intent_node(config, input_data)
+        return {"user_input": user_input}
 
-        # 大模型节点
-        if node_type == 'llm':
-            return self._execute_llm_node(config, input_data)
-
-        # 未识别类型，做透传
-        logger.warning(f'未知的节点类型: {node_type}，将直接透传输入')
-        return input_data
-
-    def _execute_intent_node(self, config: Dict[str, Any], input_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_intent_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
-        执行意图识别节点
-
-        要求大模型严格返回 JSON：
-        {
-            "intent_id": "xxx",
-            "intent_name": "xxx",
-            "reason": "简要说明"
-        }
+        意图识别节点：
+        - 使用火山引擎(豆包)对当前 user_input 做意图分类
+        - 返回 JSON: {intent_id, intent_name, reason}
         """
-        user_input = input_data.get('user_input') or input_data.get('message') or ''
-        intents = config.get('intents') or []
-        temperature = config.get('temperature', 0.2)
-        model = config.get('model', 'doubao-seed-1-6-251015')
-
-        if not user_input:
-            raise ValueError('意图识别节点需要 user_input 字段')
-
+        intents = config.get("intents") or []
         if not intents:
-            raise ValueError('意图识别节点未配置 intents 列表')
+            raise WorkflowExecutionError("意图识别节点未配置 intents 列表")
 
-        # 构造系统提示词和用户提示词
-        intents_text = json.dumps(intents, ensure_ascii=False, indent=2)
+        user_input = self.context.get("user_input")
+        if not user_input:
+            raise WorkflowExecutionError("意图识别节点无法获取 user_input")
+
+        model_name = config.get("model") or "doubao-seed-1-6-251015"
+        temperature = float(config.get("temperature") or 0.2)
+
+        intents_json = json.dumps(intents, ensure_ascii=False, indent=2)
+
         system_prompt = (
-            "你是一个意图分类助手。请根据用户的自然语言输入，从给定的意图列表中选择最合适的一个意图。\n"
-            "必须严格按照下面的 JSON 结构输出，不能包含任何多余文字或注释：\n"
-            '{\n'
-            '  "intent_id": "意图ID",\n'
-            '  "intent_name": "意图名称",\n'
-            '  "reason": "简要说明你为何选择该意图"\n'
-            '}\n'
+            "你是一个意图分类助手，负责将用户输入归类到给定的意图列表中。\n"
+            "你必须严格按照要求返回 JSON，不要输出任何多余的文字。"
         )
         user_prompt = (
-            f"意图列表（JSON）：\n{intents_text}\n\n"
-            f"用户输入：\n{user_input}\n\n"
-            "请只返回 JSON，不要输出任何解释。"
+            "下面是可选的意图列表（JSON 数组，每个元素包含 id、name、description、examples 等字段）：\n"
+            f"{intents_json}\n\n"
+            "请根据上述意图列表，对下方用户输入进行分类，并严格返回如下 JSON 格式：\n"
+            '{\n  "intent_id": "意图ID",\n  "intent_name": "意图名称",\n  "reason": "简要说明你为何选择该意图"\n}\n'
+            "注意：\n"
+            "1. 只能从给定意图列表中选择一个最合适的意图；\n"
+            '2. 如果确实无法匹配，请将 intent_id 设为 "unknown"，intent_name 设为 "未知"；\n'
+            "3. 一定只返回 JSON，不要有任何额外解释。\n\n"
+            f"用户输入：{user_input}"
         )
 
-        llm = get_llm_service('volcano')
-        reply = llm.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            model=model,
-            temperature=temperature,
-        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        llm_service = get_llm_service("volcano")
+        raw = llm_service.chat(messages=messages, model=model_name, temperature=temperature)
 
         try:
-            intent_result = json.loads(reply)
-        except Exception as exc:
-            logger.error(f'解析意图识别结果失败，原始回复: {reply}')
-            raise ValueError(f'意图识别节点期望严格 JSON，但解析失败: {exc}')
+            data = json.loads(raw)
+        except Exception as exc:  # noqa: BLE001
+            raise WorkflowExecutionError(f"意图识别模型返回非 JSON 格式: {raw}") from exc
 
-        merged = dict(input_data)
-        merged['intent'] = intent_result
-        return merged
+        intent_id = data.get("intent_id")
+        intent_name = data.get("intent_name")
+        reason = data.get("reason")
 
-    def _execute_llm_node(self, config: Dict[str, Any], input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        执行大模型节点
+        if not intent_id or not intent_name:
+            raise WorkflowExecutionError(f"意图识别结果缺少必要字段: {data}")
 
-        要求大模型严格返回 JSON：
-        {
-            "answer": "最终回答",
-            "thoughts": "可选的思考过程"
+        result = {
+            "intent_id": intent_id,
+            "intent_name": intent_name,
+            "intent_reason": reason,
         }
-        """
-        model = config.get('model', 'doubao-seed-1-6-251015')
-        temperature = config.get('temperature', 0.7)
-        max_tokens = config.get('maxTokens', 2000)
-        system_prompt = config.get(
-            'systemPrompt',
-            '你是一个对话型 AI 助手，请根据给定上下文为用户生成最终回答。',
-        )
-        user_prompt_template = config.get(
-            'prompt',
-            '根据下面的工作流上下文，为用户生成最终回答。',
-        )
+        # 同时写入简化字段，方便后续节点使用
+        self.context["intent"] = intent_name
+        return result
 
-        context_json = json.dumps(input_data, ensure_ascii=False, indent=2)
+    def _execute_llm_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        LLM 节点：
+        - 使用系统提示词 + 用户提示词模板 + 当前上下文 JSON 调用大模型
+        - 要求模型严格返回 JSON: {answer, thoughts}
+        """
+        model_name = config.get("model") or "doubao-seed-1-6-251015"
+        system_prompt = (
+            config.get("systemPrompt")
+            or "你是一个对话型 AI 助手，请根据上下文给出有帮助的回答。"
+        )
+        prompt_tpl = config.get("prompt")
+        if not prompt_tpl:
+            raise WorkflowExecutionError("LLM 节点未配置 prompt")
+
+        temperature = float(config.get("temperature") or 0.7)
+
+        context_json = json.dumps(self.context, ensure_ascii=False, indent=2)
         user_prompt = (
-            f"{user_prompt_template}\n\n"
-            f"工作流上下文 JSON：\n{context_json}\n\n"
-            "请严格按照下面的 JSON 结构输出，不能包含任何多余文字或注释：\n"
-            '{\n'
+            f"{prompt_tpl}\n\n"
+            "下面是当前工作流上下文（JSON 格式），你可以参考其中的信息进行回答：\n"
+            f"{context_json}\n\n"
+            "请严格按照如下 JSON 结构返回结果：\n"
+            "{\n"
             '  "answer": "最终的自然语言回答",\n'
             '  "thoughts": "可选的思考过程说明"\n'
-            '}\n'
-            "只返回 JSON。"
+            "}\n"
+            "注意：一定只返回 JSON，不要有任何额外解释。"
         )
 
-        llm = get_llm_service('volcano')
-        reply = llm.chat(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        llm_service = get_llm_service("volcano")
+        raw = llm_service.chat(messages=messages, model=model_name, temperature=temperature)
 
         try:
-            result = json.loads(reply)
-        except Exception as exc:
-            logger.error(f'解析 LLM 节点结果失败，原始回复: {reply}')
-            raise ValueError(f'LLM 节点期望严格 JSON，但解析失败: {exc}')
+            data = json.loads(raw)
+        except Exception as exc:  # noqa: BLE001
+            raise WorkflowExecutionError(f"LLM 节点返回非 JSON 格式: {raw}") from exc
 
-        merged = dict(input_data)
-        merged.update(result)
-        return merged
+        answer = data.get("answer")
+        if not isinstance(answer, str) or not answer.strip():
+            raise WorkflowExecutionError(f"LLM 节点返回的 answer 非法: {data}")
+
+        # 将 answer / thoughts 等字段合并回上下文
+        result = {
+            "answer": answer,
+            "thoughts": data.get("thoughts"),
+        }
+        return result
+
+    def _execute_end_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        结束节点：
+        - 默认返回上下文中的 answer 字段；
+        - 若不存在，则返回完整上下文（用于调试）。
+        """
+        if "answer" in self.context:
+            return {"answer": self.context.get("answer")}
+        return dict(self.context)
+
+
