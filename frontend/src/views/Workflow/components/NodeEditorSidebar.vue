@@ -9,7 +9,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  close: []
+  (e: 'close'): void
 }>()
 
 const { nodes, updateNodeData } = useVueFlow()
@@ -212,16 +212,26 @@ const FieldRow: any = defineComponent({
 <style scoped>
 .node-editor-sidebar {
   position: fixed;
-  top: 0;
+  top: 73px;
   right: 0;
   width: 400px;
-  height: 100vh;
+  height: calc(100vh - 73px);
   background: white;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .sidebar-header {

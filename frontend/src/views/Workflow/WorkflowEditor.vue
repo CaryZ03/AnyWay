@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref, markRaw } from 'vue'
+import { ref, markRaw, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { VueFlow, useVueFlow, Panel } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { ControlButton, Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
-import { initialEdges, initialNodes } from './initial-elements'
+// import { initialEdges, initialNodes } from './initial-elements'
 import Icon from './components/Icon.vue'
 // import NodeEditorSidebar from './components/NodeEditorSidebar.vue'
-import type { Connection } from '@vue-flow/core'
-import { CustomNode } from './nodes'
+import CustomNode from './components/CustomNode.vue'
+import { workflowApi } from '@/api'
+import { graphNodeToNode, graphEdgeToWorkflowEdge } from '@/api/workflow'
+import type { WorkflowForm } from '@/types/workflow'
+
+// , nodeToGraphNode, workflowEdgeToGraphEdge
 
 // 导入 Vue Flow 的样式
 import '@vue-flow/core/dist/style.css'
@@ -16,11 +21,14 @@ import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
 
-interface Props {
-  id: string
-}
+const router = useRouter()
+const route = useRoute()
 
-const props = defineProps<Props>()
+const workflowId = computed(() => route.params.id)
+const workflow = ref<WorkflowForm | null>(null)
+const loading = ref(false)
+const workflowName = ref('')
+const isEditingName = ref(false)
 
 
 // localStorage 的 key
@@ -28,6 +36,7 @@ const FLOW_STORAGE_KEY = 'workflow-editor-flow'
 
 const {
   onInit,
+  onConnect,
   addNodes,
   setViewport,
   toObject,
@@ -37,11 +46,17 @@ const {
   edges
 } = useVueFlow()
 
-nodes.value = initialNodes
-
-console.log('initialNodes', initialNodes)
-console.log('initialEdges', initialEdges)
-edges.value = initialEdges
+// 初始化节点和边 - 在 onInit 中设置，避免递归更新
+onInit(() => {
+  // 只有在没有数据时才使用初始值
+  // if (nodes.value.length === 0) {
+  //   nodes.value = initialNodes
+  // }
+  // if (edges.value.length === 0) {
+  //   edges.value = initialEdges
+  // }
+  setViewport({ x: 0, y: 0, zoom: 1.5 })
+})
 
 // 节点类型选项（除了 start 和 end）
 const nodeTypeOptions = [
@@ -69,9 +84,74 @@ const nodeTypes = {
   knowledge: markRaw(CustomNode),
 }
 
-onInit((vueFlowInstance) => {
-  // instance is the same as the return of `useVueFlow`
-  vueFlowInstance.fitView()
+// onInit 已经在上面定义了，这里不需要重复定义
+
+// 使用 onConnect hook 处理连接
+// 注意：onConnect 返回 false 可以阻止连接
+onConnect((connection) => {
+  console.log('onConnect 被调用，connection:', connection)
+  
+  // if (!connection) {
+  //   console.warn('连接对象为空')
+  //   return false
+  // }
+  
+  // // 验证连接的有效性
+  // if (!connection.source || !connection.target) {
+  //   console.warn('连接缺少源节点或目标节点:', connection)
+  //   return false
+  // }
+  
+  // // 防止自己连接自己（检查节点ID）
+  // if (connection.source === connection.target) {
+  //   console.warn('不能连接到自己，节点ID:', connection.source)
+  //   return false
+  // }
+  
+  // // 检查 sourceHandle 和 targetHandle 是否相同（防止同一个 handle 连接自己）
+  // if (connection.sourceHandle && connection.targetHandle && 
+  //     connection.source === connection.target && 
+  //     connection.sourceHandle === connection.targetHandle) {
+  //   console.warn('不能将同一个 handle 连接到自己:', connection)
+  //   return false
+  // }
+  
+  // // 验证节点是否存在
+  // const sourceNode = nodes.value.find(n => n.id === connection.source)
+  // const targetNode = nodes.value.find(n => n.id === connection.target)
+  
+  // if (!sourceNode || !targetNode) {
+  //   console.warn('源节点或目标节点不存在:', { 
+  //     sourceNode: sourceNode?.id, 
+  //     targetNode: targetNode?.id,
+  //     sourceId: connection.source,
+  //     targetId: connection.target
+  //   })
+  //   return false
+  // }
+  
+  // // 检查是否已存在相同的边（包括相同的 sourceHandle 和 targetHandle）
+  // const existingEdge = edges.value.find(
+  //   e => e.source === connection.source && 
+  //        e.target === connection.target &&
+  //        (e.sourceHandle === connection.sourceHandle || !connection.sourceHandle) &&
+  //        (e.targetHandle === connection.targetHandle || !connection.targetHandle)
+  // )
+  
+  // if (existingEdge) {
+  //   console.log('边已存在，阻止重复连接:', existingEdge)
+  //   return false
+  // }
+  
+  // console.log('连接验证通过，允许连接:', {
+  //   source: connection.source,
+  //   target: connection.target,
+  //   sourceHandle: connection.sourceHandle,
+  //   targetHandle: connection.targetHandle
+  // })
+  
+  // // 返回 true 或 undefined 允许连接
+  return true
 })
 
 
@@ -79,6 +159,11 @@ function handleNodeClick({ node }: { node: any }) {
   // 显示侧边栏编辑节点
   selectedNodeId.value = node.id
   console.log('节点被点击:', node)
+}
+
+// 点击画布空白处关闭侧边栏
+function handlePaneClick() {
+  selectedNodeId.value = null
 }
 
 function restoreFromStorage() {
@@ -222,21 +307,184 @@ function resetTransform() {
   setViewport({ x: 0, y: 0, zoom: 1 })
 }
 
-function handleConnect(connection: Connection) {
-  console.log('连接:', connection)
-}
 
 // function closeSidebar() {
 //   selectedNodeId.value = null
 // }
 
+// 加载工作流详情
+const loadWorkflow = async () => {
+  if (!workflowId.value) return
+  
+  loading.value = true
+  // try {
+  //   workflow.value = await workflowApi.getDetail(workflowId.value as string)
+  //   console.log('workflow.value', workflow.value)
+  //   workflowName.value = workflow.value.name
+    
+  //   // 将工作流数据转换为 VueFlow 的 nodes  and edges
+  //   // 使用 nextTick 确保在 VueFlow 初始化后再设置数据
+  //   await nextTick()
+  //   if (workflow.value.nodes && workflow.value.edges) {
+  //     nodes.value = (workflow.value.nodes as any[]).map(nodeToGraphNode) as any[]
+  //     edges.value = (workflow.value.edges as any[]).map(workflowEdgeToGraphEdge) as any[]
+  //   }
+  // } catch (error) {
+  //   console.error('加载工作流详情失败:', error)
+  //   alert('加载工作流详情失败')
+  // } finally {
+  //   loading.value = false
+  // }
+}
+
+// 保存工作流（包括节点和边的数据）
+const saveWorkflow = async () => {
+  if (!workflowId.value) return
+  
+  try {
+    // 将 VueFlow 的 nodes 和 edges 转换为业务层格式
+    const workflowNodes = nodes.value.map(graphNodeToNode)
+    const workflowEdges = edges.value.map(graphEdgeToWorkflowEdge)
+    
+    const workflowForm: WorkflowForm = {
+      id: workflow.value?.id,
+      name: workflowName.value,
+      description: workflow.value?.description,
+      nodes: workflowNodes,
+      edges: workflowEdges,
+      config: workflow.value?.config || {},
+    }
+    
+    await workflowApi.update(workflowId.value as string, workflowForm)
+    workflow.value = workflowForm
+    alert('保存成功！')
+  } catch (error: any) {
+    console.error('保存工作流失败:', error)
+    alert('保存失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 保存工作流名称
+const saveWorkflowName = async () => {
+  if (!workflow.value || !workflowId.value) return
+  
+  isEditingName.value = false
+  try {
+    await workflowApi.update(workflowId.value as string, {
+      ...workflow.value,
+      name: workflowName.value,
+    })
+    workflow.value.name = workflowName.value
+  } catch (error) {
+    console.error('保存工作流名称失败:', error)
+    alert('保存失败')
+  }
+}
+
+// 删除工作流
+const deleteWorkflow = async () => {
+  if (!workflowId.value) return
+
+  if (!confirm('确定要删除这个工作流吗？')) return
+  
+  try {
+    await workflowApi.delete(workflowId.value as string)
+    alert('删除成功！')
+    router.push('/')
+  } catch (error: any) {
+    console.error('删除工作流失败:', error)
+    alert('删除失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 执行工作流
+const executeWorkflow = async () => {
+  if (!workflowId.value) return
+  
+  try {
+    const result = await workflowApi.execute(workflowId.value as string, {})
+    console.log('工作流执行结果:', result)
+    alert('工作流执行成功！查看控制台查看结果。')
+  } catch (error: any) {
+    console.error('执行工作流失败:', error)
+    alert('执行失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 返回
+const handleBack = () => {
+  router.push('/')
+}
+
+onMounted(() => {
+  console.log('workflowId', workflowId.value)
+  if (workflowId.value) {
+    loadWorkflow()
+  }
+})
+
 </script>
 
 <template>
   <div class="workflow-editor">
-    <VueFlow v-model:nodes="nodes" v-model:edges="edges" :nodeTypes="nodeTypes" class="basic-flow"
-      :default-viewport="{ zoom: 1.5 }" :min-zoom="0.2" :max-zoom="4" @node-click="handleNodeClick"
-      @connect="handleConnect">
+    <!-- 顶部导航栏 -->
+    <header class="detail-header">
+      <button class="back-btn" @click="handleBack">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        返回
+      </button>
+      <div class="header-center">
+        <div v-if="isEditingName" class="name-editor">
+          <input
+            v-model="workflowName"
+            class="name-input"
+            @blur="saveWorkflowName"
+            @keyup.enter="saveWorkflowName"
+            @keyup.esc="isEditingName = false; workflowName = workflow?.name || ''"
+            autofocus
+          />
+        </div>
+        <h1 v-else class="detail-title" @click="isEditingName = true">
+          {{ workflowName || workflow?.name || '加载中...' }}
+        </h1>
+        <p v-if="workflow?.description" class="detail-description">{{ workflow.description }}</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" @click="saveWorkflow" title="保存工作流">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 12v2h12v-2M4 6l4 4 4-4M8 2v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          保存
+        </button>
+        <button class="btn-primary" @click="executeWorkflow" title="执行工作流">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 2v12l8-6-8-6z" fill="currentColor"/>
+          </svg>
+          执行
+        </button>
+        <button class="btn-danger" @click="deleteWorkflow" title="删除工作流">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 4h12M6 4V2.667A1.333 1.333 0 0 1 7.333 2h1.334A1.333 1.333 0 0 1 10 2.667V4m2 0v9.333A1.333 1.333 0 0 1 10.667 14.667H5.333A1.333 1.333 0 0 1 4 13.333V4h8z" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          删除
+        </button>
+      </div>
+    </header>
+
+    <!-- 内容区域 -->
+    <div class="editor-content">
+      <VueFlow 
+        :nodeTypes="nodeTypes" 
+        class="basic-flow"
+        :default-viewport="{ zoom: 1.5 }" 
+        :min-zoom="0.2" 
+        :max-zoom="4" 
+        @node-click="handleNodeClick"
+        @pane-click="handlePaneClick"
+        :class="{ 'with-sidebar': selectedNodeId }"
+      >
       <Background pattern-color="#aaa" :gap="16" />
 
       <MiniMap />
@@ -288,16 +536,163 @@ function handleConnect(connection: Connection) {
     </VueFlow>
 
     <!-- 节点编辑侧边栏 -->
-    <!-- <NodeEditorSidebar :nodeId="selectedNodeId" @close="closeSidebar" /> -->
+    <!-- <NodeEditorSidebar 
+      v-if="selectedNodeId" 
+      :nodeId="selectedNodeId" 
+      @close="closeSidebar" 
+    /> -->
+    </div>
   </div>
 </template>
 
 <!-- 组件特定样式 -->
 <style scoped>
-.basic-flow {
-  width: 100%;
+.workflow-editor {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-  min-height: 600px;
+  overflow: hidden;
+}
+
+/* Header 样式 */
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e1e8ed;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  color: #24292f;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+}
+
+.header-center {
+  flex: 1;
+  margin: 0 24px;
+  min-width: 0;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.detail-title:hover {
+  background: #f6f8fa;
+}
+
+.name-editor {
+  display: flex;
+  align-items: center;
+}
+
+.name-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 20px;
+  font-weight: 600;
+  border: 2px solid #0969da;
+  border-radius: 4px;
+  outline: none;
+}
+
+.detail-description {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #656d76;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: #0969da;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0860ca;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.btn-secondary {
+  background: #f6f8fa;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+}
+
+.btn-secondary:hover {
+  background: #f3f4f6;
+  border-color: #8c959f;
+}
+
+/* 内容区域 */
+.editor-content {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.basic-flow {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+
+.basic-flow.with-sidebar {
+  margin-right: 400px;
+  transition: margin-right 0.3s ease;
 }
 
 .vue-flow__minimap {

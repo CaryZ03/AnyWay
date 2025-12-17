@@ -1,22 +1,25 @@
-import request from '@/utils/request'
+import axios, { type AxiosInstance } from 'axios'
 import type { KnowledgeBase, KnowledgeBaseForm } from '@/types/knowledge-base'
-import type {
-  BackendKnowledgeBase,
-  BackendKnowledgeBaseRequest,
-  BackendDocument,
-  SearchRequest,
-  SearchResult,
-} from '@/types/api'
+import type { BackendDocument, SearchResult } from '@/types/api'
 
 /**
  * Knowledge Base API
- * 支持两种接口格式：
- * 1. 标准REST API: /api/v1/knowledge/ (现有后端)
- * 2. Postman文档API: /kb/ (独立知识库服务，需要user_id)
+ * 严格按照 Postman 文档实现：https://kenbers.cyou/kb/*
  * 
- * 后端字段名：snake_case (embedding_model, created_at, updated_at)
- * 前端字段名：camelCase (embeddingModel, createdAt, updatedAt)
+ * Postman 文档接口：
+ * 1. POST /kb/create - 创建知识库
+ * 2. GET /kb/list?user_id=1 - 查看某用户的所有知识库
+ * 3. GET /kb/documents?user_id=1&knowledge_base_id=1 - 查看某个知识库所有文档
+ * 4. POST /kb/upload - 上传文档
+ * 5. DELETE /kb/document/1?user_id=1 - 删除文档
+ * 6. DELETE /kb/delete?user_id=1&knowledge_base_id=1 - 删除知识库
+ * 7. POST /kb/query - 查询知识库信息
  */
+
+// 知识库服务基础URL
+// 开发环境：通过 Vite 代理访问（vite.config.ts 中配置了 /kb 代理）
+// 生产环境：直接访问 https://kenbers.cyou
+const KB_BASE_URL = import.meta.env.PROD ? 'https://kenbers.cyou' : ''
 
 // 获取当前用户ID（暂时使用固定值，后续可以从用户系统获取）
 const getUserId = (): number => {
@@ -24,8 +27,52 @@ const getUserId = (): number => {
   return 1
 }
 
-// 知识库服务基础URL（根据Postman文档）
-const KB_BASE_URL = 'https://kenbers.cyou/kb'
+// 创建专门用于知识库服务的 axios 实例
+const kbAxiosInstance: AxiosInstance = axios.create({
+  baseURL: KB_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// 请求拦截器
+kbAxiosInstance.interceptors.request.use(
+  (config) => {
+    // 如果是 FormData，删除 Content-Type，让浏览器自动设置
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type']
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器 - 处理可能的响应格式
+kbAxiosInstance.interceptors.response.use(
+  (response) => {
+    const { data } = response
+    // 处理可能的响应格式：{ code: 0, data: [...] } 或直接返回数据
+    if (data && typeof data === 'object' && data.code === 0 && data.data !== undefined) {
+      return data.data
+    }
+    return data
+  },
+  (error) => {
+    console.error('[知识库API] 请求失败:', error)
+    if (error.response) {
+      const { status, data } = error.response
+      const errorMessage = data?.message || data?.detail || `请求失败: ${status}`
+      return Promise.reject(new Error(errorMessage))
+    } else if (error.request) {
+      return Promise.reject(new Error('网络错误，请检查网络连接'))
+    } else {
+      return Promise.reject(error)
+    }
+  }
+)
 
 /**
  * 转换后端 KnowledgeBase 到前端 KnowledgeBase
@@ -51,93 +98,61 @@ function transformKnowledgeBase(backend: any): KnowledgeBase {
 }
 
 /**
- * 使用Postman文档中的接口格式
+ * 标准化文档状态
  */
+function normalizeDocumentStatus(doc: any): 'pending' | 'processing' | 'completed' | 'failed' {
+  let status = doc.status
+  
+  // 标准化 status 值（处理可能的变体）
+  if (status) {
+    const statusLower = String(status).toLowerCase()
+    if (statusLower === 'done' || statusLower === 'success' || statusLower === 'finished') {
+      status = 'completed'
+    } else if (statusLower === 'error' || statusLower === 'fail') {
+      status = 'failed'
+    } else if (statusLower === 'running' || statusLower === 'in_progress') {
+      status = 'processing'
+    } else if (statusLower === 'waiting' || statusLower === 'queued') {
+      status = 'pending'
+    }
+  }
+  
+  // 如果没有 status 或 status 无效，根据其他字段推断
+  if (!status || !['pending', 'processing', 'completed', 'failed'].includes(status)) {
+    // 如果有 processed_at 或 chunks 或 chunk_count > 0，说明已处理完成
+    if (doc.processed_at || (doc.chunks && (Array.isArray(doc.chunks) ? doc.chunks.length > 0 : true)) || (doc.chunk_count && doc.chunk_count > 0)) {
+      status = 'completed'
+    } 
+    // 如果有 error_message，说明处理失败
+    else if (doc.error_message) {
+      status = 'failed'
+    }
+    // 如果有 uploaded_at 或 created_at，说明已上传
+    else if (doc.uploaded_at || doc.created_at) {
+      // 检查是否上传时间超过一定时间（比如10分钟），如果超过则认为已完成
+      const uploadTime = new Date(doc.uploaded_at || doc.created_at).getTime()
+      const now = Date.now()
+      const tenMinutes = 10 * 60 * 1000
+      if (now - uploadTime > tenMinutes) {
+        status = 'completed'
+      } else {
+        status = 'processing'
+      }
+    }
+    // 默认状态为 pending
+    else {
+      status = 'pending'
+    }
+  }
+  
+  return status as 'pending' | 'processing' | 'completed' | 'failed'
+}
+
 export const knowledgeApi = {
   /**
-   * 获取知识库列表（根据user_id）
-   */
-  getList: async (userId?: number): Promise<KnowledgeBase[]> => {
-    const uid = userId || getUserId()
-    try {
-      // 先尝试使用Postman文档中的接口
-      const axios = (await import('axios')).default
-      const response = await axios.get(`${KB_BASE_URL}/list`, {
-        params: { user_id: uid },
-        timeout: 5000
-      })
-      console.log('[知识库API] Postman接口响应:', response.data)
-      const data = response.data
-      
-      // 处理响应数据：根据实际API返回格式 { code: 0, data: [...] }
-      let list: any[] = []
-      if (Array.isArray(data)) {
-        list = data
-      } else if (data && typeof data === 'object') {
-        // 优先处理 { code: 0, data: [...] } 格式
-        if (data.code === 0 && Array.isArray(data.data)) {
-          list = data.data
-        } else {
-          // 降级处理其他可能的响应格式
-          list = data.data || data.result || data.items || (data.success !== false ? [data] : [])
-        }
-      }
-      
-      console.log('[知识库API] 解析后的列表:', list)
-      const result = list.map(transformKnowledgeBase).filter(kb => kb.name) // 过滤掉无效数据
-      console.log('[知识库API] 转换后的结果:', result)
-      return result
-    } catch (error: any) {
-      console.warn('[知识库API] Postman接口失败，尝试使用标准REST API:', error?.message || error)
-      // 降级到标准REST API
-      try {
-        const data = await request.get<BackendKnowledgeBase[]>('/knowledge/')
-        console.log('[知识库API] 标准REST API响应:', data)
-        const result = Array.isArray(data) ? data.map(transformKnowledgeBase) : []
-        console.log('[知识库API] 标准REST API转换结果:', result)
-        return result
-      } catch (fallbackError: any) {
-        console.error('[知识库API] 标准REST API也失败:', fallbackError?.message || fallbackError)
-        return []
-      }
-    }
-  },
-
-  /**
-   * 获取知识库详情
-   */
-  getDetail: async (id: number): Promise<KnowledgeBase> => {
-    try {
-      const axios = (await import('axios')).default
-      const response = await axios.get(`${KB_BASE_URL}/list`, {
-        params: { user_id: getUserId() }
-      })
-      const data = response.data
-      // 处理 { code: 0, data: [...] } 格式
-      let list: any[] = []
-      if (Array.isArray(data)) {
-        list = data
-      } else if (data && typeof data === 'object') {
-        if (data.code === 0 && Array.isArray(data.data)) {
-          list = data.data
-        } else {
-          list = data.data || []
-        }
-      }
-      const kb = list.find((item: any) => item.id === id)
-      if (kb) {
-        return transformKnowledgeBase(kb)
-      }
-      throw new Error('知识库不存在')
-    } catch (error) {
-      console.warn('使用Postman接口失败，尝试使用标准REST API:', error)
-      const data = await request.get<BackendKnowledgeBase>(`/knowledge/${id}/`)
-      return transformKnowledgeBase(data)
-    }
-  },
-
-  /**
-   * 创建知识库
+   * 1. 创建知识库
+   * POST /kb/create
+   * Body: { user_id: number, name: string, description?: string }
    */
   create: async (form: Partial<KnowledgeBaseForm>, userId?: number): Promise<KnowledgeBase> => {
     const uid = userId || getUserId()
@@ -145,248 +160,165 @@ export const knowledgeApi = {
       throw new Error('知识库名称不能为空')
     }
     
-    try {
-      const axios = (await import('axios')).default
-      console.log('[知识库API] 创建知识库请求:', { user_id: uid, name: form.name, description: form.description })
-      const response = await axios.post(`${KB_BASE_URL}/create`, {
-        user_id: uid,
-        name: form.name,
-        description: form.description || ''
-      }, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      console.log('[知识库API] Postman接口创建响应:', response.data)
-      const data = response.data
-      
-      // 处理响应数据：根据实际API返回格式 { code: 0, data: {...} }
-      let kb: any = null
-      if (Array.isArray(data)) {
-        kb = data[0]
-      } else if (data && typeof data === 'object') {
-        // 优先处理 { code: 0, data: {...} } 格式
-        if (data.code === 0 && data.data) {
-          kb = data.data
-        } else {
-          kb = data.data || data.result || data
-        }
-      }
-      
-      if (!kb) {
-        throw new Error('创建知识库失败：响应数据格式错误')
-      }
-      
-      const result = transformKnowledgeBase(kb)
-      console.log('[知识库API] 创建成功，转换后的结果:', result)
-      return result
-    } catch (error: any) {
-      console.warn('[知识库API] Postman接口创建失败，尝试使用标准REST API:', error?.message || error)
-      // 降级到标准REST API
-      try {
-        const requestData: Partial<BackendKnowledgeBaseRequest> = {
-          name: form.name || '',
-          description: form.description,
-          embedding_model: form.embeddingModel || 'text-embedding-ada-002'
-        }
-        console.log('[知识库API] 使用标准REST API创建:', requestData)
-        const data = await request.post<BackendKnowledgeBase>('/knowledge/', requestData)
-        console.log('[知识库API] 标准REST API创建响应:', data)
-        const result = transformKnowledgeBase(data)
-        console.log('[知识库API] 标准REST API创建成功:', result)
-        return result
-      } catch (fallbackError: any) {
-        console.error('[知识库API] 标准REST API创建也失败:', fallbackError?.message || fallbackError)
-        throw new Error(fallbackError?.message || '创建知识库失败')
-      }
-    }
-  },
-
-  /**
-   * 更新知识库
-   */
-  update: async (id: number, form: Partial<KnowledgeBaseForm>): Promise<KnowledgeBase> => {
-    // Postman文档中没有更新接口，使用标准REST API
-    const requestData: Partial<BackendKnowledgeBaseRequest> = {}
-    if (form.name !== undefined) requestData.name = form.name
-    if (form.description !== undefined) requestData.description = form.description
-    if (form.embeddingModel !== undefined) requestData.embedding_model = form.embeddingModel
-
-    const data = await request.patch<BackendKnowledgeBase>(`/knowledge/${id}/`, requestData)
+    const response = await kbAxiosInstance.post('/kb/create', {
+      user_id: uid,
+      name: form.name,
+      description: form.description || ''
+    })
+    
+    // 处理响应：可能是单个对象或数组
+    const data = Array.isArray(response) ? response[0] : response
     return transformKnowledgeBase(data)
   },
 
   /**
-   * 删除知识库
+   * 2. 查看某用户的所有知识库
+   * GET /kb/list?user_id=1
+   */
+  getList: async (userId?: number): Promise<KnowledgeBase[]> => {
+    const uid = userId || getUserId()
+    const response: any = await kbAxiosInstance.get('/kb/list', {
+      params: { user_id: uid }
+    })
+    
+    // 处理响应：可能是数组或包装在对象中
+    const list = Array.isArray(response) ? response : (response?.data || [])
+    return list.map((kb: any) => transformKnowledgeBase(kb)).filter((kb: KnowledgeBase) => kb.name)
+  },
+
+  /**
+   * 获取知识库详情（通过列表接口查找）
+   * GET /kb/list?user_id=1，然后查找指定 id
+   */
+  getDetail: async (id: number, userId?: number): Promise<KnowledgeBase> => {
+    const list = await knowledgeApi.getList(userId)
+    const kb = list.find(item => item.id === id)
+    if (!kb) {
+      throw new Error('知识库不存在')
+    }
+    return kb
+  },
+
+  /**
+   * 更新知识库
+   * 注意：Postman 文档中没有更新接口，此方法保留用于兼容性
+   * 实际实现可能需要通过后端代理或其他方式
+   */
+  update: async (_id: number, _form: Partial<KnowledgeBaseForm>): Promise<KnowledgeBase> => {
+    // Postman 文档中没有更新接口，暂时抛出错误
+    throw new Error('知识库更新功能暂不支持，请使用删除后重新创建的方式')
+  },
+
+  /**
+   * 6. 删除知识库
+   * DELETE /kb/delete?user_id=1&knowledge_base_id=1
    */
   delete: async (id: number, userId?: number): Promise<void> => {
     const uid = userId || getUserId()
-    try {
-      const axios = (await import('axios')).default
-      await axios.delete(`${KB_BASE_URL}/delete`, {
-        params: {
-          user_id: uid,
-          knowledge_base_id: id
-        }
-      })
-    } catch (error) {
-      console.warn('使用Postman接口失败，尝试使用标准REST API:', error)
-      await request.delete(`/knowledge/${id}/`)
-    }
+    await kbAxiosInstance.delete('/kb/delete', {
+      params: {
+        user_id: uid,
+        knowledge_base_id: id
+      }
+    })
   },
 
   /**
-   * 上传文档到知识库
+   * 4. 上传文档到知识库
+   * POST /kb/upload
+   * FormData: { user_id: number, knowledge_base_id: number, file: File }
    */
   uploadDocument: async (knowledgeBaseId: number, file: File, userId?: number): Promise<BackendDocument> => {
     const uid = userId || getUserId()
-    try {
-      const axios = (await import('axios')).default
-      const formData = new FormData()
-      formData.append('user_id', uid.toString())
-      formData.append('knowledge_base_id', knowledgeBaseId.toString())
-      formData.append('file', file)
-      
-      const response = await axios.post(`${KB_BASE_URL}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-      const data = response.data
-      return Array.isArray(data) ? data[0] : (data?.data || data)
-    } catch (error) {
-      console.warn('使用Postman接口失败，尝试使用标准REST API:', error)
-      // 降级到标准REST API
-      const formData = new FormData()
-      formData.append('file', file)
-      return await request.post<BackendDocument>(`/knowledge/${knowledgeBaseId}/upload/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-    }
+    const formData = new FormData()
+    formData.append('user_id', uid.toString())
+    formData.append('knowledge_base_id', knowledgeBaseId.toString())
+    formData.append('file', file)
+    
+    const response: any = await kbAxiosInstance.post('/kb/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    
+    // 处理响应：可能是单个对象或数组
+    const doc = Array.isArray(response) ? response[0] : response
+    return doc as BackendDocument
   },
 
   /**
-   * 获取知识库的文档列表
+   * 3. 查看某个知识库所有文档
+   * GET /kb/documents?user_id=1&knowledge_base_id=1
    */
   getDocuments: async (knowledgeBaseId: number, userId?: number): Promise<BackendDocument[]> => {
     const uid = userId || getUserId()
-    try {
-      const axios = (await import('axios')).default
-      const response = await axios.get(`${KB_BASE_URL}/documents`, {
-        params: {
-          user_id: uid,
-          knowledge_base_id: knowledgeBaseId
-        },
-        timeout: 5000
-      })
-      console.log('[知识库API] 获取文档列表响应:', response.data)
-      const data = response.data
-      // 处理 { code: 0, data: [...] } 格式
-      let list: any[] = []
-      if (Array.isArray(data)) {
-        list = data
-      } else if (data && typeof data === 'object') {
-        if (data.code === 0 && Array.isArray(data.data)) {
-          list = data.data
-        } else {
-          list = data.data || data.result || []
-        }
+    const response: any = await kbAxiosInstance.get('/kb/documents', {
+      params: {
+        user_id: uid,
+        knowledge_base_id: knowledgeBaseId
       }
-      console.log('[知识库API] 解析后的文档列表:', list)
-      return list
-    } catch (error: any) {
-      console.warn('[知识库API] Postman接口获取文档失败，尝试使用标准REST API:', error?.message || error)
-      try {
-        return await request.get<BackendDocument[]>(`/knowledge/${knowledgeBaseId}/documents/`)
-      } catch (fallbackError: any) {
-        console.error('[知识库API] 标准REST API获取文档也失败:', fallbackError?.message || fallbackError)
-        return []
-      }
-    }
+    })
+    
+    // 处理响应：可能是数组或包装在对象中
+    const list = Array.isArray(response) ? response : (response?.data || [])
+    
+    // 标准化文档数据，确保 status 字段存在
+    return list.map((doc: any) => ({
+      ...doc,
+      status: normalizeDocumentStatus(doc),
+      knowledge_base_id: doc.knowledge_base_id || doc.knowledge_base || knowledgeBaseId,
+      uploaded_at: doc.uploaded_at || doc.created_at,
+    })) as BackendDocument[]
   },
 
   /**
-   * 删除文档
+   * 5. 删除文档
+   * DELETE /kb/document/{document_id}?user_id=1
    */
   deleteDocument: async (documentId: number, userId?: number): Promise<void> => {
     const uid = userId || getUserId()
-    try {
-      const axios = (await import('axios')).default
-      await axios.delete(`${KB_BASE_URL}/document/${documentId}`, {
-        params: {
-          user_id: uid
-        }
-      })
-    } catch (error) {
-      console.warn('使用Postman接口失败:', error)
-      throw error
-    }
+    await kbAxiosInstance.delete(`/kb/document/${documentId}`, {
+      params: {
+        user_id: uid
+      }
+    })
   },
 
   /**
-   * 查询知识库（RAG搜索）
+   * 7. 查询知识库信息（RAG搜索）
+   * POST /kb/query
+   * Body: { user_id: number, knowledge_base_id: number, query: string, top_k: number }
    */
   query: async (knowledgeBaseId: number, query: string, topK: number = 3, userId?: number): Promise<SearchResult[]> => {
     const uid = userId || getUserId()
-    try {
-      const axios = (await import('axios')).default
-      const response = await axios.post(`${KB_BASE_URL}/query`, {
-        user_id: uid,
-        knowledge_base_id: knowledgeBaseId,
-        query: query,
-        top_k: topK
-      }, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      console.log('[知识库API] 查询知识库响应:', response.data)
-      const data = response.data
-      
-      // 处理 { code: 0, data: { documents: [...], metadatas: [...], scores: [...] } } 格式
-      let results: SearchResult[] = []
-      if (data && typeof data === 'object') {
-        if (data.code === 0 && data.data) {
-          const queryData = data.data
-          if (queryData.documents && Array.isArray(queryData.documents)) {
-            // 将 documents, metadatas, scores 组合成 SearchResult[]
-            const documents = queryData.documents || []
-            const metadatas = queryData.metadatas || []
-            const scores = queryData.scores || []
-            
-            results = documents.map((content: string, index: number) => ({
-              id: metadatas[index]?.doc_id?.toString() || `${index}`,
-              content: content,
-              metadata: metadatas[index] || {},
-              score: scores[index]
-            }))
-          }
-        } else if (Array.isArray(data.data)) {
-          results = data.data
-        } else if (Array.isArray(data)) {
-          results = data
-        } else {
-          results = data.data || data.result || []
-        }
+    const response: any = await kbAxiosInstance.post('/kb/query', {
+      user_id: uid,
+      knowledge_base_id: knowledgeBaseId,
+      query: query,
+      top_k: topK
+    })
+    
+    // 处理响应格式：{ documents: [...], metadatas: [...], scores: [...] }
+    if (response && typeof response === 'object' && !Array.isArray(response)) {
+      if (response.documents && Array.isArray(response.documents)) {
+        const documents = response.documents || []
+        const metadatas = response.metadatas || []
+        const scores = response.scores || []
+        
+        return documents.map((content: string, index: number) => ({
+          id: metadatas[index]?.doc_id?.toString() || `${index}`,
+          content: content,
+          metadata: metadatas[index] || {},
+          score: scores[index]
+        }))
+      } else if (response.data && Array.isArray(response.data)) {
+        return response.data
       }
-      
-      console.log('[知识库API] 解析后的查询结果:', results)
-      return results
-    } catch (error: any) {
-      console.warn('[知识库API] Postman接口查询失败，尝试使用标准REST API:', error?.message || error)
-      // 降级到标准REST API
-      try {
-        const requestData: SearchRequest = { query, top_k: topK }
-        return await request.post<SearchResult[]>(`/knowledge/${knowledgeBaseId}/search/`, requestData)
-      } catch (fallbackError: any) {
-        console.error('[知识库API] 标准REST API查询也失败:', fallbackError?.message || fallbackError)
-        return []
-      }
+    } else if (Array.isArray(response)) {
+      return response
     }
+    
+    return []
   },
 
   /**
@@ -396,6 +328,3 @@ export const knowledgeApi = {
     return knowledgeApi.query(knowledgeBaseId, query, topK)
   },
 }
-
-
-

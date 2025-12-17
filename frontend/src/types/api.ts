@@ -64,7 +64,7 @@ export interface ConversationResponse {
  * 后端 Workflow 字段格式
  */
 export interface BackendWorkflow {
-  id?: number
+  id?: string
   name: string
   description?: string
   definition: {
@@ -109,6 +109,18 @@ export interface WorkflowExecutionResponse {
   status: 'pending' | 'running' | 'completed' | 'failed'
   node_status: Record<string, any>
   error_message?: string
+  started_at?: string
+  completed_at?: string
+  created_at: string
+}
+
+/**
+ * 工作流执行历史列表项（简化版）
+ */
+export interface WorkflowExecutionListItem {
+  id: number
+  workflow: number
+  status: 'pending' | 'running' | 'completed' | 'failed'
   started_at?: string
   completed_at?: string
   created_at: string

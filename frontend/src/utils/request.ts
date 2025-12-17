@@ -2,9 +2,9 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios'
 
 // API 基础配置
-// 开发环境：通过 Nginx 代理访问后端（docker-compose.prod.yml 中前端容器暴露在 18080 端口）
+// 开发环境：通过 Vite 代理访问后端（vite.config.ts 中配置了代理）
 // 生产环境：使用相对路径（通过 Nginx 代理）
-const API_BASE_URL = import.meta.env.PROD ? '/api/v1' : 'http://localhost:18080/api/v1'
+const API_BASE_URL = '/api/v1'
 
 // 创建 axios 实例
 const axiosInstance: AxiosInstance = axios.create({

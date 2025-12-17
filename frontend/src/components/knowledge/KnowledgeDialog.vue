@@ -49,13 +49,15 @@ const handleSubmit = async () => {
     return
   }
 
+  // 如果是在编辑模式下，提示不支持更新
+  if (form.value.id) {
+    alert('知识库更新功能暂不支持，请使用删除后重新创建的方式')
+    return
+  }
+
   saving.value = true
   try {
-    if (form.value.id) {
-      await knowledgeApi.update(form.value.id, form.value)
-    } else {
-      await knowledgeApi.create(form.value)
-    }
+    await knowledgeApi.create(form.value)
     emit('saved')
   } catch (error: any) {
     alert(error?.message || '保存失败')
@@ -69,7 +71,7 @@ const handleSubmit = async () => {
   <div v-if="show" class="dialog-backdrop">
     <div class="dialog">
       <div class="dialog-header">
-        <h3>{{ form.id ? '编辑知识库' : '新建知识库' }}</h3>
+        <h3>新建知识库</h3>
         <button class="close-btn" @click="close">×</button>
       </div>
       <div class="dialog-body">

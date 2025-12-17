@@ -144,8 +144,7 @@ const handleDeleteDocument = async (documentId: number) => {
 
 // 返回列表
 const handleBack = () => {
-  stopAutoRefresh()
-  router.push('/knowledge')
+  router.push('/')
 }
 
 onMounted(() => {
@@ -227,8 +226,8 @@ onUnmounted(() => {
                 </svg>
                 {{ doc.file_size ? (doc.file_size / 1024).toFixed(2) + ' KB' : '未知大小' }}
               </span>
-              <span v-if="doc.status" class="meta-item status" :class="doc.status">
-                {{ doc.status === 'completed' ? '已完成' : doc.status === 'processing' ? '处理中' : doc.status === 'failed' ? '失败' : '待处理' }}
+              <span class="meta-item status" :class="doc.status || 'pending'">
+                {{ (doc.status || 'pending') === 'completed' ? '已完成' : (doc.status || 'pending') === 'processing' ? '处理中' : (doc.status || 'pending') === 'failed' ? '失败' : '待处理' }}
               </span>
             </div>
             <div v-if="doc.uploaded_at || doc.created_at" class="document-time">

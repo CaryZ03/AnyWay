@@ -31,11 +31,6 @@ const routes: RouteRecordRaw[] = [
     props: true
   },
   {
-    path: '/knowledge',
-    name: 'KnowledgeBaseList',
-    component: () => import('@/views/Knowledge/KnowledgeBaseList.vue')
-  },
-  {
     path: '/knowledge/:id',
     name: 'KnowledgeBaseDetail',
     component: () => import('@/views/Knowledge/KnowledgeBaseDetail.vue'),

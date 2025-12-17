@@ -22,11 +22,23 @@ const nodeClass = computed(() => {
 
 <template>
   <div :class="nodeClass">
-    <Handle v-if="showInputHandle" id="input-handle" type="target" :position="Position.Left" />
+    <Handle 
+      v-if="showInputHandle" 
+      id="target" 
+      type="target" 
+      :position="Position.Left"
+      :is-connectable="true"
+    />
 
     <NodeCard :node="props" />
 
-    <Handle v-if="showOutputHandle" id="output-handle" type="source" :position="Position.Right" />
+    <Handle 
+      v-if="showOutputHandle" 
+      id="source" 
+      type="source" 
+      :position="Position.Right"
+      :is-connectable="true"
+    />
   </div>
 </template>
 

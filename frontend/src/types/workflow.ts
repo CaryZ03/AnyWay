@@ -275,7 +275,7 @@ export interface WorkflowConfig {
  * Workflow 实体（后端返回格式）
  */
 export interface Workflow {
-  id?: number
+  id?: string
   name: string
   description?: string
   version?: string
@@ -290,12 +290,15 @@ export interface Workflow {
  * Workflow 表单（前端编辑格式）
  */
 export interface WorkflowForm {
-  id?: number
+  id?: string
   name: string
   description?: string
   version?: string
   nodes: Node[]
   edges: WorkflowEdge[]
   config: WorkflowConfig
+  status?: 'draft' | 'active'
+  createdAt?: string
+  updatedAt?: string
 }
 
