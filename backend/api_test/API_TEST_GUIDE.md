@@ -153,7 +153,92 @@ Body (raw JSON):
 }
 ```
 
-### 2.8 删除智能体
+### 2.8 获取智能体对话历史
+
+**Postman配置:**
+```
+Method: GET
+URL: http://localhost:8000/api/v1/agents/1/conversations/
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "获取对话历史成功",
+  "data": [
+    {
+      "id": 1,
+      "user_message": "你好",
+      "assistant_message": "你好！有什么可以帮助你的吗？",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "success": true
+}
+```
+
+### 2.9 为智能体添加插件
+
+**Postman配置:**
+```
+Method: POST
+URL: http://localhost:8000/api/v1/agents/1/add_plugins/
+Headers:
+  Content-Type: application/json
+Body (raw JSON):
+```
+```json
+{
+  "plugin_ids": [1, 2]
+}
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "插件添加成功",
+  "data": {
+    "id": 1,
+    "plugin_ids": [1, 2],
+    ...
+  },
+  "success": true
+}
+```
+
+### 2.10 从智能体删除插件
+
+**Postman配置:**
+```
+Method: POST
+URL: http://localhost:8000/api/v1/agents/1/remove_plugins/
+Headers:
+  Content-Type: application/json
+Body (raw JSON):
+```
+```json
+{
+  "plugin_ids": [1]
+}
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "插件删除成功",
+  "data": {
+    "id": 1,
+    "plugin_ids": [2],
+    ...
+  },
+  "success": true
+}
+```
+
+### 2.11 删除智能体
 
 **Postman配置:**
 ```
@@ -273,6 +358,21 @@ Method: GET
 URL: http://localhost:8000/api/v1/workflows/1/
 ```
 
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "获取工作流详情成功",
+  "data": {
+    "id": 1,
+    "name": "示例工作流",
+    "definition": {...},
+    ...
+  },
+  "success": true
+}
+```
+
 ### 3.4 更新工作流
 
 **Postman配置:**
@@ -355,6 +455,21 @@ Method: GET
 URL: http://localhost:8000/api/v1/knowledge/1/
 ```
 
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "获取知识库详情成功",
+  "data": {
+    "id": 1,
+    "name": "测试知识库",
+    "document_count": 5,
+    ...
+  },
+  "success": true
+}
+```
+
 ### 4.4 更新知识库
 
 **Postman配置:**
@@ -382,10 +497,78 @@ Headers:
 Body (form-data):
   Key: file
   Type: File
-  Value: 选择一个文档文件
+  Value: 选择一个文档文件（支持 .txt, .md, .markdown）
 ```
 
-### 4.6 删除知识库
+**预期响应:**
+```json
+{
+  "code": 201,
+  "message": "文档上传成功，正在处理中",
+  "data": {
+    "id": 1,
+    "filename": "example.txt",
+    "status": "pending",
+    ...
+  },
+  "success": true
+}
+```
+
+### 4.6 获取知识库文档列表
+
+**Postman配置:**
+```
+Method: GET
+URL: http://localhost:8000/api/v1/knowledge/1/documents/
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "获取文档列表成功",
+  "data": [
+    {
+      "id": 1,
+      "filename": "example.txt",
+      "status": "processed",
+      "chunk_count": 10,
+      ...
+    }
+  ],
+  "success": true
+}
+```
+
+### 4.7 搜索知识库
+
+**Postman配置:**
+```
+Method: POST
+URL: http://localhost:8000/api/v1/knowledge/1/search/
+Headers:
+  Content-Type: application/json
+Body (raw JSON):
+```
+```json
+{
+  "query": "搜索关键词",
+  "top_k": 5
+}
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "搜索完成",
+  "data": [],
+  "success": true
+}
+```
+
+### 4.8 删除知识库
 
 **Postman配置:**
 ```
@@ -455,7 +638,7 @@ URL: http://localhost:8000/api/v1/plugins/1/
 
 **Postman配置:**
 ```
-Method: PUT 或 PATCH
+Method: PATCH
 URL: http://localhost:8000/api/v1/plugins/1/
 Headers:
   Content-Type: application/json
@@ -464,6 +647,20 @@ Body (raw JSON):
 ```json
 {
   "description": "更新后的插件描述"
+}
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "插件更新成功",
+  "data": {
+    "id": 1,
+    "description": "更新后的插件描述",
+    ...
+  },
+  "success": true
 }
 ```
 
@@ -477,6 +674,20 @@ Headers:
   Content-Type: application/json
 ```
 
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "插件已启用",
+  "data": {
+    "id": 1,
+    "status": "enabled",
+    ...
+  },
+  "success": true
+}
+```
+
 ### 5.6 禁用插件
 
 **Postman配置:**
@@ -485,6 +696,20 @@ Method: POST
 URL: http://localhost:8000/api/v1/plugins/1/disable/
 Headers:
   Content-Type: application/json
+```
+
+**预期响应:**
+```json
+{
+  "code": 200,
+  "message": "插件已禁用",
+  "data": {
+    "id": 1,
+    "status": "disabled",
+    ...
+  },
+  "success": true
+}
 ```
 
 ### 5.7 删除插件
@@ -542,16 +767,31 @@ Body (raw JSON):
 | 发布智能体 | POST | /api/v1/agents/{id}/publish/ | ⬜ |  |
 | 测试智能体 | POST | /api/v1/agents/{id}/test/ | ⬜ |  |
 | 智能体对话 | POST | /api/v1/agents/{id}/chat/ | ⬜ |  |
+| 获取对话历史 | GET | /api/v1/agents/{id}/conversations/ | ⬜ |  |
+| 添加插件 | POST | /api/v1/agents/{id}/add_plugins/ | ⬜ |  |
+| 删除插件 | POST | /api/v1/agents/{id}/remove_plugins/ | ⬜ |  |
 | 删除智能体 | DELETE | /api/v1/agents/{id}/ | ⬜ |  |
 | 获取工作流列表 | GET | /api/v1/workflows/ | ⬜ |  |
 | 创建工作流 | POST | /api/v1/workflows/ | ⬜ |  |
+| 获取工作流详情 | GET | /api/v1/workflows/{id}/ | ⬜ |  |
+| 更新工作流 | PATCH | /api/v1/workflows/{id}/ | ⬜ |  |
 | 执行工作流 | POST | /api/v1/workflows/{id}/execute/ | ⬜ |  |
+| 删除工作流 | DELETE | /api/v1/workflows/{id}/ | ⬜ |  |
 | 获取知识库列表 | GET | /api/v1/knowledge/ | ⬜ |  |
 | 创建知识库 | POST | /api/v1/knowledge/ | ⬜ |  |
+| 获取知识库详情 | GET | /api/v1/knowledge/{id}/ | ⬜ |  |
+| 更新知识库 | PATCH | /api/v1/knowledge/{id}/ | ⬜ |  |
 | 上传文档 | POST | /api/v1/knowledge/{id}/upload/ | ⬜ |  |
+| 获取文档列表 | GET | /api/v1/knowledge/{id}/documents/ | ⬜ |  |
+| 搜索知识库 | POST | /api/v1/knowledge/{id}/search/ | ⬜ |  |
+| 删除知识库 | DELETE | /api/v1/knowledge/{id}/ | ⬜ |  |
 | 获取插件列表 | GET | /api/v1/plugins/ | ⬜ |  |
 | 注册插件 | POST | /api/v1/plugins/ | ⬜ |  |
+| 获取插件详情 | GET | /api/v1/plugins/{id}/ | ⬜ |  |
+| 更新插件 | PATCH | /api/v1/plugins/{id}/ | ⬜ |  |
 | 启用插件 | POST | /api/v1/plugins/{id}/enable/ | ⬜ |  |
+| 禁用插件 | POST | /api/v1/plugins/{id}/disable/ | ⬜ |  |
+| 删除插件 | DELETE | /api/v1/plugins/{id}/ | ⬜ |  |
 | LLM聊天 | POST | /api/v1/llm/chat/ | ⬜ |  |
 
 ---
@@ -616,4 +856,4 @@ http://localhost:8000/swagger/
 
 ---
 
-**最后更新:** 2025-11-24
+**最后更新:** 2025-01-27
