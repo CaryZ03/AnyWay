@@ -5,7 +5,7 @@ Workflow 校验与执行引擎。
 项目自己的数据结构（Workflow.definition）做了适配：
 
 - Workflow.definition: {"nodes": [...], "edges": [...], "config": {...}}
-- 节点类型: start / intent / llm / http / knowledge / end  （plugin 预留，暂未实现）
+- 节点类型: start / intent / llm / http / knowledge / plugin / end
 
 节点输出存储：
 - 每个节点的输出会存储到 context[node.id] 中
@@ -30,6 +30,8 @@ import requests
 from django.utils import timezone
 
 from apps.llm.services import get_llm_service
+from apps.plugin.models import Plugin
+from apps.plugin.services import PluginService
 
 from .models import Workflow, WorkflowExecution
 
@@ -436,8 +438,7 @@ class WorkflowEngine:
         if node_type == "knowledge":
             return self._execute_knowledge_node(cfg)
         if node_type == "plugin":
-            # 预留：未来支持插件节点，这里先给出清晰错误提示
-            raise WorkflowExecutionError("插件节点暂未实现")
+            return self._execute_plugin_node(cfg)
         if node_type == "end":
             return self._execute_end_node(cfg)
 
@@ -833,6 +834,62 @@ class WorkflowEngine:
         except Exception as e:
             logger.error("知识库检索节点执行异常: %s", str(e), exc_info=True)
             raise WorkflowExecutionError(f"知识库检索异常: {str(e)}")
+    
+    def _execute_plugin_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        插件节点：
+        - 调用已注册的插件操作
+        - 支持变量替换（参数）
+        """
+        plugin_id = config.get("plugin_id") or config.get("pluginId")
+        operation_id = config.get("operation_id") or config.get("operationId")
+        params = config.get("params") or config.get("arguments") or {}
+        
+        if not plugin_id:
+            raise WorkflowExecutionError("插件节点必须配置插件ID")
+        
+        if not operation_id:
+            raise WorkflowExecutionError("插件节点必须配置操作ID（operationId）")
+        
+        # 查询插件
+        try:
+            plugin = Plugin.objects.get(id=plugin_id, deleted=False)
+        except Plugin.DoesNotExist:
+            raise WorkflowExecutionError(f"插件不存在: {plugin_id}")
+        
+        # 检查插件状态
+        if plugin.status != "enabled":
+            raise WorkflowExecutionError(f"插件未启用: {plugin.name}")
+        
+        # 对参数进行变量替换
+        processed_params = self._replace_dict_variables(params)
+        
+        # 调用插件操作
+        plugin_service = PluginService()
+        result = plugin_service.call_plugin_operation(plugin, operation_id, processed_params)
+        
+        if not result.get("success"):
+            error_msg = result.get("error", "未知错误")
+            logger.error("插件节点执行失败: %s", error_msg)
+            raise WorkflowExecutionError(f"插件调用失败: {error_msg}")
+        
+        # 构造输出结果
+        output = {
+            "success": True,
+            "data": result.get("data"),
+            "status_code": result.get("status_code"),
+            "operation_id": operation_id,
+            "plugin_id": plugin_id,
+            "plugin_name": plugin.name,
+        }
+        
+        logger.info(
+            "插件节点执行成功，插件: %s, 操作: %s, 状态码: %s",
+            plugin.name,
+            operation_id,
+            result.get("status_code"),
+        )
+        return output
     
     def _execute_end_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
