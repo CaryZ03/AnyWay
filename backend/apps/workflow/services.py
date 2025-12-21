@@ -5,15 +5,28 @@ Workflow 校验与执行引擎。
 项目自己的数据结构（Workflow.definition）做了适配：
 
 - Workflow.definition: {"nodes": [...], "edges": [...], "config": {...}}
-- 节点类型: start / intent / llm / end  （plugin 预留，暂未实现）
+- 节点类型: start / intent / llm / http / knowledge / end  （plugin 预留，暂未实现）
+
+节点输出存储：
+- 每个节点的输出会存储到 context[node.id] 中
+- 后续节点可以通过 {node_id} 或 {node_id.field} 引用前面节点的输出
+- 例如：{llm.response} 可以引用 id 为 "llm" 的节点的 response 字段
+
+变量替换支持：
+- {node_id} - 引用节点完整输出（如果是字典会转为JSON字符串）
+- {node_id.field} - 引用节点输出的特定字段，支持嵌套（如 {llm.response}）
+- {input.param} - 引用工作流输入参数
 """
 from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
+import requests
 from django.utils import timezone
 
 from apps.llm.services import get_llm_service
@@ -215,6 +228,70 @@ class WorkflowEngine:
         self.context: Dict[str, Any] = {}
         self.node_status: Dict[str, Any] = {}
 
+    def _replace_variables(self, text: str) -> str:
+        """
+        变量替换，支持以下格式：
+        - {node_id} - 引用节点输出
+        - {node_id.field} - 引用节点输出的特定字段
+        - {input.param} - 引用工作流输入参数
+        
+        Args:
+            text: 待替换的文本
+            
+        Returns:
+            str: 替换后的文本
+        """
+        if not isinstance(text, str):
+            return text
+        
+        # 匹配变量：{node_id} 或 {node_id.field} 或 {input.param}
+        pattern = r'\{([^}]+)\}'
+        
+        def replace_match(match):
+            var_path = match.group(1)
+            
+            # 处理 {input.param} 格式
+            if var_path.startswith("input."):
+                param_name = var_path[6:]  # 去掉 "input."
+                input_data = self.context.get("input", {})
+                if isinstance(input_data, dict):
+                    value = input_data.get(param_name)
+                    if value is not None:
+                        return str(value)
+            
+            # 处理 {node_id} 或 {node_id.field} 格式
+            parts = var_path.split(".", 1)
+            node_id = parts[0]
+            
+            if node_id in self.context:
+                node_output = self.context[node_id]
+                
+                # 如果是 {node_id.field} 格式
+                if len(parts) > 1:
+                    field_path = parts[1]
+                    # 支持嵌套字段访问，如 node_id.data.result
+                    value = node_output
+                    for field in field_path.split("."):
+                        if isinstance(value, dict):
+                            value = value.get(field)
+                        else:
+                            return match.group(0)  # 无法访问，返回原文本
+                    if value is not None:
+                        return str(value)
+                else:
+                    # {node_id} 格式，返回整个输出（如果是字符串）
+                    if isinstance(node_output, str):
+                        return node_output
+                    elif isinstance(node_output, dict):
+                        # 如果是字典，尝试转换为JSON字符串
+                        return json.dumps(node_output, ensure_ascii=False)
+            
+            # 变量未找到，返回原文本
+            return match.group(0)
+        
+        result = re.sub(pattern, replace_match, text)
+        return result
+
     def execute(
         self, workflow: Workflow, input_data: Dict[str, Any], execution: WorkflowExecution
     ) -> Dict[str, Any]:
@@ -266,10 +343,8 @@ class WorkflowEngine:
 
             try:
                 node_result = self._execute_node(node)
-                if isinstance(node_result, dict):
-                    # 将节点输出合并到全局上下文，方便后续节点引用
-                    self.context.update(node_result)
-                elif node_result is not None:
+                # 将节点输出存储到context[node.id]，方便后续节点通过变量引用
+                if node_result is not None:
                     self.context[node.id] = node_result
             except Exception as exc:  # noqa: BLE001 - 需要兜底任何异常
                 error = exc
@@ -301,11 +376,25 @@ class WorkflowEngine:
             if status == "failed":
                 break
 
-        # 组装最终输出：优先使用 answer 字段
-        if "answer" in self.context:
+        # 组装最终输出：使用 end 节点的输出
+        # 找到 end 节点的ID
+        end_node_id = None
+        for n in ordered_nodes:
+            if n.type == "end":
+                end_node_id = n.id
+                break
+        
+        if end_node_id and end_node_id in self.context:
+            # 使用 end 节点的输出作为最终输出
+            final_output = self.context[end_node_id]
+            # 确保是字典类型
+            if not isinstance(final_output, dict):
+                final_output = {"output": final_output}
+        elif "answer" in self.context:
+            # 如果没有end节点输出，但存在answer字段，使用answer
             final_output: Dict[str, Any] = {"answer": self.context.get("answer")}
         else:
-            # 没有 answer 时，返回完整上下文（便于调试）
+            # 没有 end 节点输出和 answer 时，返回完整上下文（便于调试）
             final_output = dict(self.context)
 
         execution.output_data = final_output
@@ -342,6 +431,10 @@ class WorkflowEngine:
             return self._execute_intent_node(cfg)
         if node_type == "llm":
             return self._execute_llm_node(cfg)
+        if node_type == "http":
+            return self._execute_http_node(cfg)
+        if node_type == "knowledge":
+            return self._execute_knowledge_node(cfg)
         if node_type == "plugin":
             # 预留：未来支持插件节点，这里先给出清晰错误提示
             raise WorkflowExecutionError("插件节点暂未实现")
@@ -486,14 +579,293 @@ class WorkflowEngine:
         }
         return result
 
+    def _execute_http_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        HTTP请求节点：
+        - 调用外部HTTP API
+        - 支持变量替换（url、headers、body）
+        """
+        url = config.get("url", "")
+        method = config.get("method", "GET").upper()
+        headers = config.get("headers", {})
+        body = config.get("body")
+        timeout = config.get("timeout", 10)
+        retry_count = config.get("retryCount", 0)
+        validate_ssl = config.get("validateSSL", True)
+        follow_redirect = config.get("followRedirect", True)
+        
+        if not url:
+            raise WorkflowExecutionError("HTTP节点必须配置URL")
+        
+        # 对URL进行变量替换
+        url = self._replace_variables(url)
+        
+        # 替换请求头中的变量
+        processed_headers = {}
+        for key, value in headers.items():
+            if isinstance(value, str):
+                processed_headers[key] = self._replace_variables(value)
+            else:
+                processed_headers[key] = value
+        
+        # 替换请求体中的变量
+        processed_body = None
+        if body:
+            if isinstance(body, str):
+                processed_body = self._replace_variables(body)
+                # 尝试解析为JSON
+                try:
+                    processed_body = json.loads(processed_body)
+                except json.JSONDecodeError:
+                    # 如果不是JSON，保持原样
+                    pass
+            elif isinstance(body, dict):
+                # 如果是字典，递归替换其中的字符串值
+                processed_body = self._replace_dict_variables(body)
+            else:
+                processed_body = body
+        
+        # 发送HTTP请求（支持重试）
+        last_error = None
+        for attempt in range(retry_count + 1):
+            try:
+                # 准备请求参数
+                request_kwargs = {
+                    "method": method,
+                    "url": url,
+                    "headers": processed_headers,
+                    "timeout": timeout,
+                    "allow_redirects": follow_redirect,
+                    "verify": validate_ssl,
+                }
+                
+                # 根据方法设置body
+                if method in ("POST", "PUT", "PATCH"):
+                    if isinstance(processed_body, dict):
+                        request_kwargs["json"] = processed_body
+                    elif isinstance(processed_body, str):
+                        request_kwargs["data"] = processed_body
+                    else:
+                        request_kwargs["data"] = processed_body
+                
+                response = requests.request(**request_kwargs)
+                
+                # 尝试解析响应为JSON
+                try:
+                    response_body = response.json()
+                except (ValueError, json.JSONDecodeError):
+                    response_body = response.text
+                
+                # 构造输出结果
+                output = {
+                    "status_code": response.status_code,
+                    "headers": dict(response.headers),
+                    "body": response_body,
+                    "data": response_body,  # 别名，方便引用
+                    "status": response.status_code,  # 别名
+                    "success": 200 <= response.status_code < 300,  # 成功标志
+                    "url": url,  # 实际请求的URL（经过变量替换后）
+                    "method": method,  # 请求方法
+                }
+                
+                logger.info(
+                    "HTTP节点执行成功，状态码: %s, 尝试次数: %s/%s",
+                    response.status_code,
+                    attempt + 1,
+                    retry_count + 1,
+                )
+                return output
+                
+            except requests.exceptions.Timeout:
+                last_error = TimeoutError(f"HTTP请求超时（{timeout}秒）")
+                if attempt < retry_count:
+                    logger.warning(
+                        "HTTP请求超时，正在重试 (%s/%s)", attempt + 1, retry_count
+                    )
+                    import time
+                    time.sleep(1)  # 重试前等待1秒
+                else:
+                    raise last_error
+            except Exception as e:
+                last_error = e
+                if attempt < retry_count:
+                    logger.warning(
+                        "HTTP请求失败: %s，正在重试 (%s/%s)", str(e), attempt + 1, retry_count
+                    )
+                    import time
+                    time.sleep(1)  # 重试前等待1秒
+                else:
+                    logger.error(
+                        "HTTP节点执行失败（已重试%s次）: %s", retry_count, str(e), exc_info=True
+                    )
+                    raise
+        
+        # 如果所有重试都失败，抛出最后一个错误
+        if last_error:
+            raise last_error
+        
+        raise WorkflowExecutionError("HTTP节点执行失败")
+    
+    def _replace_dict_variables(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """递归替换字典中的变量"""
+        result = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                result[key] = self._replace_variables(value)
+            elif isinstance(value, dict):
+                result[key] = self._replace_dict_variables(value)
+            elif isinstance(value, list):
+                result[key] = [
+                    self._replace_variables(item) if isinstance(item, str) else item
+                    for item in value
+                ]
+            else:
+                result[key] = value
+        return result
+    
+    def _execute_knowledge_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        知识库检索节点：
+        - 调用外部知识库API进行检索
+        - 支持变量替换（query）
+        """
+        knowledge_base_id = config.get("knowledge_base_id") or config.get("knowledgeBaseId")
+        query = config.get("query", "")
+        top_k = config.get("top_k") or config.get("topK", 5)
+        user_id = config.get("user_id") or config.get("userId", 1)  # 默认用户ID为1
+        
+        if not knowledge_base_id:
+            raise WorkflowExecutionError("知识库检索节点必须配置知识库ID")
+        
+        if not query:
+            raise WorkflowExecutionError("知识库检索节点必须配置查询文本")
+        
+        # 对查询文本进行变量替换
+        query = self._replace_variables(str(query))
+        
+        # 知识库API URL（从环境变量读取，如果没有则使用默认值）
+        kb_api_base = os.getenv("KB_API_BASE", "https://kenbers.cyou/kb")
+        query_url = f"{kb_api_base}/query"
+        
+        # 构建请求体
+        request_body = {
+            "user_id": user_id,
+            "knowledge_base_id": int(knowledge_base_id),
+            "query": query,
+            "top_k": int(top_k),
+        }
+        
+        try:
+            # 发送请求
+            response = requests.post(
+                query_url,
+                json=request_body,
+                timeout=30,
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+            
+            # 解析响应
+            response_data = response.json()
+            
+            # 处理不同的响应格式
+            results = []
+            if isinstance(response_data, dict):
+                # 格式1: { documents: [...], metadatas: [...], scores: [...] }
+                if "documents" in response_data:
+                    documents = response_data.get("documents", [])
+                    metadatas = response_data.get("metadatas", [])
+                    scores = response_data.get("scores", [])
+                    results = [
+                        {
+                            "id": str(metadatas[i].get("doc_id", i)) if i < len(metadatas) else str(i),
+                            "content": doc,
+                            "metadata": metadatas[i] if i < len(metadatas) else {},
+                            "score": scores[i] if i < len(scores) else None,
+                        }
+                        for i, doc in enumerate(documents)
+                    ]
+                # 格式2: { data: [...] }
+                elif "data" in response_data:
+                    results = response_data["data"]
+                    if not isinstance(results, list):
+                        results = []
+                # 格式3: 直接是结果字典
+                elif isinstance(response_data, dict) and "results" in response_data:
+                    results = response_data["results"]
+            elif isinstance(response_data, list):
+                # 格式4: 直接是数组
+                results = response_data
+            
+            # 构造输出结果
+            output = {
+                "results": results,
+                "total": len(results),
+                "kb_id": knowledge_base_id,
+                "query": query,  # 经过变量替换后的查询文本
+            }
+            
+            # 如果有结果，添加便捷访问字段
+            if results:
+                output["top_result"] = results[0]  # 最相似的结果
+                output["top_content"] = results[0].get("content", "") if isinstance(results[0], dict) else str(results[0])  # 最相似的内容
+                if isinstance(results[0], dict) and "score" in results[0]:
+                    output["top_similarity"] = results[0]["score"]  # 最高相似度
+                
+                # 合并所有内容，用于LLM节点
+                contents = []
+                for r in results:
+                    if isinstance(r, dict):
+                        content = r.get("content", "")
+                        metadata = r.get("metadata", {})
+                        title = metadata.get("title") or metadata.get("document_title") or "未知来源"
+                        contents.append(f"【来源：{title}】\n{content}")
+                    else:
+                        contents.append(str(r))
+                output["combined_content"] = "\n\n---\n\n".join(contents)
+            
+            logger.info("知识库检索完成，找到 %s 个结果", len(results))
+            return output
+            
+        except requests.exceptions.RequestException as e:
+            logger.error("知识库检索节点执行失败: %s", str(e), exc_info=True)
+            raise WorkflowExecutionError(f"知识库检索失败: {str(e)}")
+        except Exception as e:
+            logger.error("知识库检索节点执行异常: %s", str(e), exc_info=True)
+            raise WorkflowExecutionError(f"知识库检索异常: {str(e)}")
+    
     def _execute_end_node(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         结束节点：
-        - 默认返回上下文中的 answer 字段；
+        - 优先使用 outputContent 配置（支持变量替换）
+        - 如果 outputContent 存在，执行变量替换后返回
+        - 否则默认返回上下文中的 answer 字段
         - 若不存在，则返回完整上下文（用于调试）。
         """
+        output_content = config.get("outputContent") or config.get("output_content")
+        
+        # 优先使用 outputContent (这是前端直接编辑的字段)
+        if output_content:
+            # 执行变量替换
+            final_content = self._replace_variables(str(output_content))
+            logger.info("结束节点输出(自定义): %s", final_content)
+            
+            # 尝试判断是否是JSON格式，如果是则解析，否则返回字符串
+            try:
+                if (final_content.startswith("{") and final_content.endswith("}")) or \
+                   (final_content.startswith("[") and final_content.endswith("]")):
+                    return json.loads(final_content)
+            except json.JSONDecodeError:
+                pass
+                
+            return {"output": final_content}
+        
+        # 默认逻辑：优先返回 answer 字段
         if "answer" in self.context:
             return {"answer": self.context.get("answer")}
+        
+        # 如果没有answer，返回完整上下文（用于调试）
+        logger.info("结束节点输出(默认): %s", self.context)
         return dict(self.context)
 
 
