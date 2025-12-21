@@ -46,16 +46,9 @@ const {
   edges
 } = useVueFlow()
 
-// 初始化节点和边 - 在 onInit 中设置，避免递归更新
-onInit(() => {
-  // 只有在没有数据时才使用初始值
-  // if (nodes.value.length === 0) {
-  //   nodes.value = initialNodes
-  // }
-  // if (edges.value.length === 0) {
-  //   edges.value = initialEdges
-  // }
-  setViewport({ x: 0, y: 0, zoom: 1.5 })
+onInit((vueFlowInstance) => {
+  // instance is the same as the return of `useVueFlow`
+  vueFlowInstance.fitView()
 })
 
 // 节点类型选项（除了 start 和 end）
