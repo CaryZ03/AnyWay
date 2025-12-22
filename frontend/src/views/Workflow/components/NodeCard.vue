@@ -28,16 +28,6 @@ const nodeIcon = computed(() => {
 
 // 根据节点类型获取显示标签
 const nodeLabel = computed(() => {
-  // const typeMap: Record<string, string> = {
-  //   start: '开始',
-  //   end: '结束',
-  //   llm: 'LLM',
-  //   http: 'HTTP',
-  //   knowledge: '知识库',
-  //   intent: '意图识别',
-  //   string: '字符串处理',
-  // }
-  // return typeMap[props.node.type || 'custom'] || '节点'
   return props.node.data.name || '节点'
 })
 
@@ -48,7 +38,7 @@ const nodeInputLabels = computed(() => {
 
   switch (props.node.type) {
     case 'start':
-      return [{ name: "input_text", type: "str", required: true }]
+      return [{ name: "用户输入", type: "str", required: true }]
     case 'end':
       return []
     case 'llm':
@@ -85,14 +75,15 @@ const nodeOutputLabels = computed(() => {
   if (!nodeType) return []
   
   // 使用固定的输出字段定义
+  // 注意：开始节点和结束节点使用友好的显示名称，但实际字段名仍然是 input_text 和 output_text
   const outputFields = {
-    start: ['input_text'],
+    start: ['用户输入'],  // 显示名称，实际字段是 input_text
     llm: ['response'],
     http: ['status', 'data'],
     knowledge: ['documents'],
     intent: ['intent', 'confidence'],
     string: ['result'],
-    end: ['output_text'],
+    end: ['工作流输出'],  // 显示名称，实际字段是 output_text
   } as Record<string, string[]>
   
   const fields = outputFields[nodeType] || []
@@ -124,7 +115,7 @@ const nodeConfigs = computed(() => {
   const data = props.node.data
   if (!data) return []
 
-  const configs: Array<{ label: string; value: string }> = []
+  const configs: Array<{ label: string; value: string; editable?: boolean; fieldName?: string; isStringField?: boolean }> = []
 
   switch (props.node.type) {
     case 'llm': {
@@ -238,11 +229,27 @@ const nodeConfigs = computed(() => {
       break
     }
     case 'start': {
-      // Start 节点通常不需要额外配置
+      // Start 节点显示用户输入（input_text字段的值）
+      const startData = data as any
+      const inputText = startData.input_text || ''
+      configs.push({ 
+        label: '用户输入', 
+        value: inputText,
+        isStringField: true,
+        fieldName: 'input_text'
+      })
       break
     }
     case 'end': {
-      // End 节点通常不需要额外配置
+      // End 节点显示工作流输出（output_text字段的值，可能包含变量替换）
+      const endData = data as any
+      const outputText = endData.output_text || ''
+      configs.push({ 
+        label: '工作流输出', 
+        value: outputText,
+        isStringField: true,
+        fieldName: 'output_text'
+      })
       break
     }
   }
@@ -269,27 +276,35 @@ const nodeConfigs = computed(() => {
 
     <!-- Body -->
     <div class="section">
-      <div v-if="nodeInputLabels.length > 0" class="section-row">
-        <span class="row-label">输入</span>
-        <span v-for="(v, k) in nodeInputLabels" :key="k" class="field-tag">
-          <span class="field-type">{{ v.type == 'obj' ? '{ }' : v.type + '.' }}</span>
-          <span class="field-name">{{ v.name }}{{ v.required ? '' : '?' }}</span>
-        </span>
-      </div>
+      <!-- 开始节点和结束节点不显示输入输出行，只显示配置信息 -->
+      <template v-if="props.node.type !== 'start' && props.node.type !== 'end'">
+        <div v-if="nodeInputLabels.length > 0" class="section-row">
+          <span class="row-label">输入</span>
+          <span v-for="(v, k) in nodeInputLabels" :key="k" class="field-tag">
+            <span class="field-type">{{ v.type == 'obj' ? '{ }' : v.type + '.' }}</span>
+            <span class="field-name">{{ v.name }}{{ v.required ? '' : '?' }}</span>
+          </span>
+        </div>
 
-      <div v-if="nodeOutputLabels.length > 0" class="section-row">
-        <span class="row-label">输出</span>
-        <span v-for="(v, k) in nodeOutputLabels" :key="k" class="field-tag">
-          <span class="field-type">{{ typeof v.type === 'object' ? '{ }' : v.type + '.' }}</span>
-          <span class="field-name">{{ v.name }}</span>
-        </span>
-      </div>
+        <div v-if="nodeOutputLabels.length > 0" class="section-row">
+          <span class="row-label">输出</span>
+          <span v-for="(v, k) in nodeOutputLabels" :key="k" class="field-tag">
+            <span class="field-type">{{ typeof v.type === 'object' ? '{ }' : v.type + '.' }}</span>
+            <span class="field-name">{{ v.name }}</span>
+          </span>
+        </div>
+      </template>
 
-      <!-- 额外配置信息 -->
+      <!-- 配置信息 -->
       <template v-for="(config, index) in nodeConfigs" :key="index">
         <div class="section-row">
           <span class="row-label">{{ config.label }}</span>
-          <span class="config-value">{{ config.value }}</span>
+          <!-- 开始节点和结束节点的值显示为field-tag样式（与其他节点属性一致） -->
+          <span v-if="(props.node.type === 'start' || props.node.type === 'end') && config.isStringField" class="field-tag">
+            <span class="field-type">str.</span>
+            <span class="field-name">{{ config.value || '' }}</span>
+          </span>
+          <span v-else class="config-value">{{ config.value }}</span>
         </div>
       </template>
     </div>
@@ -422,6 +437,33 @@ const nodeConfigs = computed(() => {
   color: #1a1a1a;
   font-weight: 400;
   white-space: nowrap;
+}
+
+/* 可编辑的配置值样式 */
+.config-value-editable {
+  display: inline-block;
+  font-size: 11px;
+  color: #1a1a1a;
+  font-weight: 400;
+  white-space: nowrap;
+  min-width: 60px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: text;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.config-value-editable:hover {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+}
+
+.config-value-editable:focus {
+  background: white;
+  border-color: #0969da;
+  box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
 }
 
 /* Field Tag 样式 */

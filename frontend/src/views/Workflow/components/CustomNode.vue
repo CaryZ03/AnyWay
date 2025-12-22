@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { NodeProps } from '@vue-flow/core'
-import { Handle, Position } from '@vue-flow/core'
+import { Handle, Position, useVueFlow } from '@vue-flow/core'
 import type { NodeConfig } from '@/types/workflow'
 import NodeCard from './NodeCard.vue'
 
@@ -9,6 +9,22 @@ interface CustomEvents {
 }
 
 const props = defineProps<NodeProps<NodeConfig, CustomEvents>>()
+const { updateNodeData } = useVueFlow()
+
+// 处理NodeCard的数据更新事件
+function handleNodeDataUpdate(data: any) {
+  // 使用VueFlow的updateNodeData API更新节点数据
+  updateNodeData(props.id, (node) => {
+    if (!node) return node
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        ...data
+      }
+    }
+  })
+}
 
 // 判断是否需要显示输入/输出 Handle
 const showInputHandle = computed(() => props.type !== 'start')
@@ -30,7 +46,7 @@ const nodeClass = computed(() => {
       :is-connectable="true"
     />
 
-    <NodeCard :node="props" />
+    <NodeCard :node="props" @update:data="handleNodeDataUpdate" />
 
     <Handle 
       v-if="showOutputHandle" 

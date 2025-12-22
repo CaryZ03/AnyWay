@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, markRaw, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { VueFlow, useVueFlow, Panel } from '@vue-flow/core'
+import { VueFlow, useVueFlow } from '@vue-flow/core'
 import type { GraphNode, GraphEdge } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { ControlButton, Controls } from '@vue-flow/controls'
@@ -30,9 +30,27 @@ const loading = ref(false)
 const workflowName = ref('')
 const isEditingName = ref(false)
 
+// Toast 提示
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error' | 'info'>('info')
+const showToast = ref(false)
+let toastTimer: number | null = null
 
-// localStorage 的 key
-const FLOW_STORAGE_KEY = 'workflow-editor-flow'
+function showToastMessage(message: string, type: 'success' | 'error' | 'info' = 'info') {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+  
+  // 清除之前的定时器
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+  
+  // 3秒后自动隐藏
+  toastTimer = window.setTimeout(() => {
+    showToast.value = false
+  }, 1000)
+}
 
 const {
   onInit,
@@ -44,8 +62,19 @@ const {
 const nodes = ref<GraphNode[]>([])
 const edges = ref<GraphEdge[]>([])
 
+// 节点ID计数器（用于生成唯一ID）
+const nodeIdCounter = ref(0)
+
 onInit((vueFlowInstance) => {
   vueFlowInstance.fitView()
+  // 初始化计数器：找到现有节点中的最大编号
+  const existingIds = nodes.value.map(node => {
+    if (!node.id) return 0
+    const idStr = String(node.id)
+    const match = idStr.match(/^(\w+)-(\d+)$/)
+    return match && match[2] ? parseInt(match[2], 10) : 0
+  })
+  nodeIdCounter.value = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1
 })
 
 // 节点类型选项（除了 start 和 end）
@@ -121,26 +150,6 @@ function handlePaneClick() {
   selectedEdgeId.value = null
 }
 
-function restoreFromStorage() {
-  const savedData = localStorage.getItem(FLOW_STORAGE_KEY)
-  if (savedData) {
-    const flowData = JSON.parse(savedData)
-    
-    // 手动恢复 nodes 和 edges
-    if (flowData.nodes) {
-      nodes.value = flowData.nodes
-    }
-    if (flowData.edges) {
-      edges.value = flowData.edges
-    }
-    if (flowData.viewport) {
-      setViewport(flowData.viewport)
-    }
-    
-    console.log('已恢复数据，节点数:', nodes.value.length, '边数:', edges.value.length)
-  }
-}
-
 function openNodeTypeDialog() {
   showNodeTypeDialog.value = true
 }
@@ -150,7 +159,9 @@ function closeNodeTypeDialog() {
 }
 
 function createNodeByType(nodeType: string) {
-  const newNodeId = `node-${Date.now()}`
+  // 使用 nodetype-counter 格式生成节点ID
+  nodeIdCounter.value += 1
+  const newNodeId = `${nodeType}-${nodeIdCounter.value}`
   // 获取视口中心位置，如果 dimensions 不可用，使用默认值
   const centerX = 400
   const centerY = 300
@@ -229,23 +240,6 @@ function createNodeByType(nodeType: string) {
   closeNodeTypeDialog()
   console.log('已创建新节点:', newNodeId, '类型:', nodeType, '节点数据:', newNode)
   console.log('当前节点总数:', nodes.value.length)
-}
-
-function saveToStorage() {
-  // 手动保存 nodes 和 edges
-  const flowData = {
-    nodes: nodes.value || [],
-    edges: edges.value || [],
-    viewport: toObject().viewport || { x: 0, y: 0, zoom: 1 }
-  }
-  console.log('保存数据:', flowData)
-  localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(flowData))
-  console.log('已保存到 localStorage，节点数:', flowData.nodes.length, '边数:', flowData.edges.length)
-}
-
-function clearStorage() {
-  localStorage.removeItem(FLOW_STORAGE_KEY)
-  alert('已清除本地保存')
 }
 
 /**
@@ -328,6 +322,15 @@ const loadWorkflow = async () => {
       edges.value = []
     }
     
+    // 初始化节点ID计数器：找到现有节点中的最大编号
+    const existingIds = nodes.value.map(node => {
+      if (!node.id) return 0
+      const idStr = String(node.id)
+      const match = idStr.match(/^(\w+)-(\d+)$/)
+      return match && match[2] ? parseInt(match[2], 10) : 0
+    })
+    nodeIdCounter.value = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1
+    
     console.log('已加载工作流，节点数:', nodes.value.length, '边数:', edges.value.length)
   } catch (error) {
     console.error('加载工作流详情失败:', error)
@@ -338,8 +341,8 @@ const loadWorkflow = async () => {
 }
 
 // 保存工作流（包括节点和边的数据）
-const saveWorkflow = async () => {
-  if (!workflowId.value) return
+const saveWorkflow = async (): Promise<boolean> => {
+  if (!workflowId.value) return false
   
   try {
     // 将 VueFlow 的 nodes 和 edges 转换为业务层格式
@@ -357,10 +360,12 @@ const saveWorkflow = async () => {
     
     await workflowApi.update(workflowId.value as string, workflowForm)
     workflow.value = workflowForm
-    alert('保存成功！')
+    showToastMessage('保存成功！', 'success')
+    return true
   } catch (error: any) {
     console.error('保存工作流失败:', error)
-    alert('保存失败: ' + (error?.message || '未知错误'))
+    showToastMessage('保存失败: ' + (error?.message || '未知错误'), 'error')
+    return false
   }
 }
 
@@ -375,9 +380,10 @@ const saveWorkflowName = async () => {
       name: workflowName.value,
     })
     workflow.value.name = workflowName.value
+    showToastMessage('名称已保存', 'success')
   } catch (error) {
     console.error('保存工作流名称失败:', error)
-    alert('保存失败')
+    showToastMessage('保存失败', 'error')
   }
 }
 
@@ -404,26 +410,112 @@ const executionStatus = ref<'idle' | 'running' | 'completed' | 'failed'>('idle')
 const currentExecution = ref<any>(null)
 const executionResult = ref<any>(null)
 const showExecutionDialog = ref(false)
+const showExecutionInputDialog = ref(false)
+const executionInput = ref('')
+// 节点执行状态映射（用于在画布上显示节点状态）
+const nodeExecutionStatus = ref<Record<string, {
+  status: 'pending' | 'running' | 'success' | 'failed'
+  output?: any
+  error?: string
+  duration?: number
+}>>({})
 const pollingInterval = ref<number | null>(null)
+// 展开的输出节点ID集合
+const expandedOutputs = ref<Set<string>>(new Set())
 
-// 执行工作流
-const executeWorkflow = async () => {
+// 获取节点名称
+function getNodeName(nodeId: string | number): string {
+  const nodeIdStr = String(nodeId)
+  const node = nodes.value.find(n => String(n.id) === nodeIdStr)
+  if (node && node.data && (node.data as any).name) {
+    return (node.data as any).name
+  }
+  // 如果没有名称，根据节点类型返回默认名称
+  const nodeType = node?.type || nodeIdStr.split('-')[0] || 'unknown'
+  const typeLabels: Record<string, string> = {
+    start: '开始',
+    end: '结束',
+    llm: 'LLM',
+    intent: '意图识别',
+    http: 'HTTP请求',
+    knowledge: '知识库检索',
+    string: '字符串处理',
+  }
+  return typeLabels[nodeType] || nodeType
+}
+
+// 切换输出展开/收起
+function toggleOutput(nodeId: string | number) {
+  const nodeIdStr = String(nodeId)
+  if (expandedOutputs.value.has(nodeIdStr)) {
+    expandedOutputs.value.delete(nodeIdStr)
+  } else {
+    expandedOutputs.value.add(nodeIdStr)
+  }
+  // 触发响应式更新
+  expandedOutputs.value = new Set(expandedOutputs.value)
+}
+
+// 打开执行输入对话框
+const openExecutionInputDialog = () => {
+  // 从开始节点获取用户输入值
+  const startNode = nodes.value.find(node => node.type === 'start')
+  if (startNode && startNode.data) {
+    executionInput.value = (startNode.data as any).input_text || ''
+  } else {
+    executionInput.value = ''
+  }
+  showExecutionInputDialog.value = true
+}
+
+// 确认执行工作流
+const confirmExecuteWorkflow = async () => {
   if (!workflowId.value) return
+  
+  // 关闭输入对话框
+  showExecutionInputDialog.value = false
+  
+  // 先自动保存工作流
+  showToastMessage('正在保存工作流...', 'info')
+  const saved = await saveWorkflow()
+  
+  if (!saved) {
+    // 如果保存失败，不执行工作流
+    showToastMessage('保存失败，无法执行工作流', 'error')
+    return
+  }
   
   try {
     executionStatus.value = 'running'
     showExecutionDialog.value = true
     executionResult.value = null
+    nodeExecutionStatus.value = {} // 清空之前的节点状态
     
-    // 启动执行
-    const result = await workflowApi.execute(workflowId.value as string, {})
+    // 初始化所有节点为pending状态
+    nodes.value.forEach(node => {
+      nodeExecutionStatus.value[node.id] = { status: 'pending' }
+    })
+    
+    // 启动执行，使用开始节点的用户输入值（如果对话框中的值为空，则使用开始节点的值）
+    const startNode = nodes.value.find(node => node.type === 'start')
+    let userInput = executionInput.value
+    if (!userInput && startNode && startNode.data) {
+      userInput = (startNode.data as any).input_text || ''
+    }
+    if (!userInput) {
+      userInput = '测试输入' // 默认值
+    }
+    const result = await workflowApi.execute(workflowId.value as string, { user_input: userInput })
     currentExecution.value = result
     
     // 如果执行是异步的，开始轮询状态
     if (result.status === 'pending' || result.status === 'running') {
       startPolling(result.id)
     } else {
-      // 如果立即完成或失败，直接显示结果
+      // 如果立即完成或失败，模拟逐步显示节点执行状态
+      if (result.node_status) {
+        await simulateNodeExecution(result.node_status)
+      }
       executionStatus.value = result.status === 'completed' ? 'completed' : 'failed'
       executionResult.value = result
     }
@@ -435,6 +527,35 @@ const executeWorkflow = async () => {
       status: 'failed'
     }
     showExecutionDialog.value = true
+  }
+}
+
+// 模拟逐步显示节点执行状态（让用户能看到执行过程）
+async function simulateNodeExecution(nodeStatus: Record<string, any>) {
+  // 按照节点在nodes数组中的顺序执行
+  const nodeOrder = nodes.value.map(n => n.id)
+  
+  for (const nodeId of nodeOrder) {
+    const status = nodeStatus[nodeId]
+    if (!status) continue
+    
+    // 设置为运行中
+    if (nodeExecutionStatus.value[nodeId]) {
+      nodeExecutionStatus.value[nodeId].status = 'running'
+    }
+    
+    // 等待一小段时间，让用户看到节点状态变化
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 更新为最终状态
+    if (nodeExecutionStatus.value[nodeId]) {
+      nodeExecutionStatus.value[nodeId] = {
+        status: status.status === 'success' ? 'success' : status.status === 'failed' ? 'failed' : 'success',
+        output: status.output,
+        error: status.error,
+        duration: status.duration_ms
+      }
+    }
   }
 }
 
@@ -491,9 +612,12 @@ function closeExecutionDialog() {
   }, 500)
 }
 
-// 组件卸载时清理轮询
+// 组件卸载时清理轮询和toast定时器
 onUnmounted(() => {
   stopPolling()
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
 })
 
 // 返回
@@ -512,6 +636,18 @@ onMounted(() => {
 
 <template>
   <div class="workflow-editor">
+    <!-- Toast 提示 -->
+    <Transition name="toast">
+      <div v-if="showToast" class="toast" :class="`toast-${toastType}`">
+        <span class="toast-icon">
+          <span v-if="toastType === 'success'">✓</span>
+          <span v-else-if="toastType === 'error'">✕</span>
+          <span v-else>ℹ</span>
+        </span>
+        <span class="toast-message">{{ toastMessage }}</span>
+      </div>
+    </Transition>
+
     <!-- 顶部导航栏 -->
     <header class="detail-header">
       <button class="back-btn" @click="handleBack">
@@ -537,19 +673,28 @@ onMounted(() => {
         <p v-if="workflow?.description" class="detail-description">{{ workflow.description }}</p>
       </div>
       <div class="header-actions">
+        <!-- 创建节点下拉菜单 -->
+        <div class="create-node-dropdown">
+          <button class="btn-secondary" @click="openNodeTypeDialog" title="创建节点">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            创建节点
+          </button>
+        </div>
         <button class="btn-secondary" @click="saveWorkflow" title="保存工作流">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 12v2h12v-2M4 6l4 4 4-4M8 2v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           保存
         </button>
-        <button class="btn-primary" @click="executeWorkflow" title="执行工作流">
+        <button class="btn-primary" @click="openExecutionInputDialog" title="执行工作流">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M4 2v12l8-6-8-6z" fill="currentColor"/>
           </svg>
           执行
         </button>
-        <button class="btn-danger" @click="deleteWorkflow" title="删除工作流">
+        <button class="btn-delete" @click="deleteWorkflow" title="删除工作流">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 4h12M6 4V2.667A1.333 1.333 0 0 1 7.333 2h1.334A1.333 1.333 0 0 1 10 2.667V4m2 0v9.333A1.333 1.333 0 0 1 10.667 14.667H5.333A1.333 1.333 0 0 1 4 13.333V4h8z" stroke="currentColor" stroke-width="1.5"/>
           </svg>
@@ -591,24 +736,6 @@ onMounted(() => {
         </ControlButton>
       </Controls>
 
-      <!-- 功能面板 -->
-      <Panel position="top-right" class="workflow-panel">
-        <div class="panel-buttons">
-          <button class="panel-button" title="创建新节点" @click="openNodeTypeDialog">
-            ➕ 创建节点
-          </button>
-          <button class="panel-button" title="保存到本地" @click="saveToStorage">
-            💾 保存
-          </button>
-          <button class="panel-button" title="恢复上次保存" @click="restoreFromStorage">
-            ↩️ 恢复
-          </button>
-          <button class="panel-button" title="清除本地保存" @click="clearStorage">
-            ↩️ 清除
-          </button>
-        </div>
-      </Panel>
-
       <!-- 节点类型选择对话框 -->
       <div v-if="showNodeTypeDialog" class="node-type-dialog-overlay" @click="closeNodeTypeDialog">
         <div class="node-type-dialog" @click.stop>
@@ -638,6 +765,40 @@ onMounted(() => {
       @update:nodes="handleNodesUpdate"
       @update:edges="handleEdgesUpdate"
     />
+
+    <!-- 执行输入对话框 -->
+    <div v-if="showExecutionInputDialog" class="execution-dialog-overlay" @click.self="showExecutionInputDialog = false">
+      <div class="execution-dialog execution-input-dialog" @click.stop>
+        <div class="execution-dialog-header">
+          <h3>执行工作流</h3>
+          <button class="close-btn" @click="showExecutionInputDialog = false" title="关闭">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="execution-dialog-content">
+          <div class="form-section">
+            <div class="form-item">
+              <label class="form-label">用户输入</label>
+              <textarea
+                v-model="executionInput"
+                class="form-textarea"
+                placeholder="请输入工作流的输入内容..."
+                rows="6"
+              />
+              <div class="form-hint">此输入将作为工作流的 user_input 参数传递给开始节点</div>
+            </div>
+          </div>
+          
+          <div class="dialog-actions">
+            <button class="btn-secondary" @click="showExecutionInputDialog = false">取消</button>
+            <button class="btn-primary" @click="confirmExecuteWorkflow">执行</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 工作流执行结果对话框 -->
     <div v-if="showExecutionDialog" class="execution-dialog-overlay" @click="closeExecutionDialog">
@@ -717,14 +878,43 @@ onMounted(() => {
               <h4>节点执行状态</h4>
               <div class="node-status-list">
                 <div 
-                  v-for="(status, nodeId) in (executionResult || currentExecution).node_status" 
+                  v-for="(statusInfo, nodeId) in (executionResult || currentExecution).node_status" 
                   :key="nodeId"
                   class="node-status-item"
+                  :class="`status-${statusInfo.status || 'unknown'}`"
                 >
-                  <span class="node-status-id">{{ nodeId }}</span>
-                  <span class="node-status-value" :class="`status-${status}`">
-                    {{ status }}
-                  </span>
+                  <div class="node-status-header-new">
+                    <div class="node-status-left">
+                      <span class="node-status-name">{{ getNodeName(nodeId) }}</span>
+                      <span class="node-status-id">{{ nodeId }}</span>
+                    </div>
+                    <div class="node-status-center">
+                      <span v-if="statusInfo.duration_ms" class="node-status-duration-new">
+                        {{ statusInfo.duration_ms }}ms
+                      </span>
+                    </div>
+                    <div class="node-status-right">
+                      <span class="node-status-value" :class="`status-${statusInfo.status || 'unknown'}`">
+                        {{ statusInfo.status === 'success' ? '✅ 成功' : 
+                           statusInfo.status === 'failed' ? '❌ 失败' : 
+                           statusInfo.status === 'running' ? '⏳ 运行中' : '⏸️ 等待' }}
+                      </span>
+                      <button
+                        v-if="statusInfo.output"
+                        class="btn-view-output"
+                        :class="{ 'active': expandedOutputs.has(String(nodeId)) }"
+                        @click="toggleOutput(nodeId)"
+                      >
+                        {{ expandedOutputs.has(String(nodeId)) ? '收起输出' : '查看输出' }}
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="statusInfo.error" class="node-status-error">
+                    <strong>错误:</strong> {{ statusInfo.error }}
+                  </div>
+                  <div v-if="statusInfo.output && expandedOutputs.has(String(nodeId))" class="node-status-output-expanded">
+                    <pre>{{ JSON.stringify(statusInfo.output, null, 2) }}</pre>
+                  </div>
                 </div>
               </div>
             </div>
@@ -829,7 +1019,8 @@ onMounted(() => {
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-delete {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -851,12 +1042,12 @@ onMounted(() => {
   background: #0860ca;
 }
 
-.btn-danger {
+.btn-delete {
   background: #dc2626;
   color: white;
 }
 
-.btn-danger:hover {
+.btn-delete:hover {
   background: #b91c1c;
 }
 
@@ -951,10 +1142,64 @@ onMounted(() => {
   color: #1a1a1a;
 }
 
+.execution-input-dialog {
+  max-width: 600px;
+  width: 90%;
+}
+
 .execution-dialog-content {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+}
+
+/* 执行输入对话框样式 */
+.execution-input-dialog .form-section {
+  margin-bottom: 24px;
+}
+
+.execution-input-dialog .form-item {
+  margin-bottom: 20px;
+}
+
+.execution-input-dialog .form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.execution-input-dialog .form-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.execution-input-dialog .form-textarea:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.execution-input-dialog .form-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #656d76;
+}
+
+.execution-input-dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e1e8ed;
 }
 
 .execution-status-section {
@@ -1112,26 +1357,157 @@ onMounted(() => {
 
 .node-status-item {
   display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+  transition: all 0.2s;
+}
+
+.node-status-item:hover {
+  border-color: #0969da;
+  box-shadow: 0 2px 4px rgba(9, 105, 218, 0.1);
+}
+
+.node-status-header-new {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e1e8ed;
+  gap: 16px;
+  width: 100%;
+}
+
+.node-status-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-status-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .node-status-id {
-  font-size: 12px;
+  font-size: 11px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   color: #656d76;
 }
 
+.node-status-center {
+  flex-shrink: 0;
+  min-width: 80px;
+  text-align: center;
+}
+
+.node-status-duration-new {
+  font-size: 12px;
+  color: #656d76;
+  font-weight: 500;
+}
+
+.node-status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .node-status-value {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.node-status-value.status-success {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.node-status-value.status-failed {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.node-status-value.status-running {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.node-status-value.status-pending {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.btn-view-output {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-view-output:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
+}
+
+.btn-view-output.active {
+  background: #0969da;
+  border-color: #0969da;
+  color: white;
+}
+
+.node-status-error {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fff5f5;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #d32f2f;
+}
+
+.node-status-output-expanded {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+  animation: slideDown 0.2s ease;
+}
+
+.node-status-output-expanded pre {
+  margin: 0;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #1a1a1a;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .execution-dialog-footer {
@@ -1163,41 +1539,9 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 功能面板样式 */
-.workflow-panel {
-  z-index: 10;
-}
-
-.panel-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.panel-button {
-  padding: 8px 16px;
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.panel-button:hover {
-  background: #e0e0e0;
-  border-color: #bbb;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.panel-button:active {
-  transform: translateY(0);
+/* 创建节点下拉菜单样式 */
+.create-node-dropdown {
+  position: relative;
 }
 
 /* 节点类型选择对话框样式 */
@@ -1315,5 +1659,85 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 500;
   color: #1a1a1a;
+}
+
+/* Toast 提示样式 */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  min-width: 200px;
+  max-width: 400px;
+  animation: slideInRight 0.3s ease;
+}
+
+.toast-success {
+  border-left: 4px solid #10b981;
+}
+
+.toast-error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.toast-icon {
+  font-size: 18px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icon {
+  color: #10b981;
+}
+
+.toast-error .toast-icon {
+  color: #ef4444;
+}
+
+.toast-info .toast-icon {
+  color: #3b82f6;
+}
+
+.toast-message {
+  font-size: 14px;
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.toast-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
 }
 </style>

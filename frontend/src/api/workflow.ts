@@ -10,16 +10,42 @@ import type { GraphNode, GraphEdge } from '@vue-flow/core'
 
 /**
  * 将后端 Workflow 转换为前端可编辑的 WorkflowForm
+ * 注意：后端节点使用 config 字段，前端使用 data 字段，需要转换
  */
 function transformWorkflow(backend: BackendWorkflow): WorkflowForm {
   const definition = backend.definition || { nodes: [], edges: [], config: {} }
+
+  // 转换节点：将 config 字段转换为 data 字段
+  const frontendNodes = (definition.nodes || []).map((node: any) => {
+    const frontendNode: any = {
+      id: node.id,
+      type: node.type,
+    }
+    
+    // 如果节点有 position，保留它
+    if (node.position) {
+      frontendNode.position = node.position
+    }
+    
+    // 将 config 字段转换为 data 字段
+    if (node.config) {
+      frontendNode.data = node.config
+    } else if (node.data) {
+      // 如果节点已经有 data 字段（可能是前端格式），直接使用
+      frontendNode.data = node.data
+    } else {
+      frontendNode.data = {}
+    }
+    
+    return frontendNode
+  })
 
   return {
     id: backend.id,
     name: backend.name,
     description: backend.description,
     version: (definition.config && definition.config.version) || undefined,
-    nodes: definition.nodes || [],
+    nodes: frontendNodes,
     edges: definition.edges || [],
     config: definition.config || {},
     status: backend.status,
@@ -30,17 +56,50 @@ function transformWorkflow(backend: BackendWorkflow): WorkflowForm {
 
 /**
  * 将前端 WorkflowForm 转换为后端请求体
+ * 注意：后端期望节点使用 config 字段，前端使用 data 字段，需要转换
  */
 function toBackendRequest(form: WorkflowForm): BackendWorkflowRequest {
+  // 转换节点：将 data 字段转换为 config 字段，并添加 name 字段
+  const backendNodes = form.nodes.map(node => {
+    const backendNode: any = {
+      id: node.id,
+      type: node.type,
+    }
+    
+    // 如果节点有 position，保留它（虽然后端可能不使用）
+    if (node.position) {
+      backendNode.position = node.position
+    }
+    
+    // 将 data 字段转换为 config 字段
+    if (node.data) {
+      backendNode.config = node.data
+      // 从 config 中提取 name 字段（如果存在）
+      if (node.data.name) {
+        backendNode.name = node.data.name
+      }
+    } else if ((node as any).config) {
+      // 如果节点已经有 config 字段（从后端返回的数据），直接使用
+      backendNode.config = (node as any).config
+      if ((node as any).name) {
+        backendNode.name = (node as any).name
+      }
+    } else {
+      backendNode.config = {}
+    }
+    
+    return backendNode
+  })
+  
   return {
     name: form.name,
     description: form.description,
     definition: {
-      nodes: form.nodes,
+      nodes: backendNodes,
       edges: form.edges,
       config: form.config || {},
     },
-    status: 'draft',
+    status: form.status || 'draft',
   }
 }
 
@@ -84,7 +143,7 @@ export const backendWorkflowApi = {
    */
   async update(id: string, form: WorkflowForm): Promise<WorkflowForm> {
     const payload = toBackendRequest(form)
-    const data = await request.put<BackendWorkflow>(`/workflows/${id}/`, payload)
+    const data = await request.patch<BackendWorkflow>(`/workflows/${id}/`, payload)
     return transformWorkflow(data)
   },
 

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import type { GraphNode, GraphEdge } from '@vue-flow/core'
 import type { LLMNodeConfig, HTTPNodeConfig, KnowledgeNodeConfig, IntentNodeConfig, StringNodeConfig, StartNodeConfig, EndNodeConfig } from '@/types/workflow'
+import { knowledgeApi } from '@/api'
+import type { KnowledgeBase } from '@/types/knowledge-base'
 
 interface Props {
   nodeId: string | null
@@ -93,6 +95,62 @@ function updateNestedField(path: string[], value: any) {
 // 侧边栏宽度调整相关
 const sidebarWidth = ref(320)
 const isResizing = ref(false)
+
+// 知识库列表
+const knowledgeBases = ref<KnowledgeBase[]>([])
+const loadingKnowledgeBases = ref(false)
+
+// 获取知识库列表
+const fetchKnowledgeBases = async () => {
+  if (knowledgeBases.value.length > 0) return // 如果已加载，不再重复加载
+  
+  loadingKnowledgeBases.value = true
+  try {
+    const data = await knowledgeApi.getList()
+    knowledgeBases.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('获取知识库列表失败:', error)
+    knowledgeBases.value = []
+  } finally {
+    loadingKnowledgeBases.value = false
+  }
+}
+
+
+// 意图编辑状态：存储每个意图的描述和示例框的显示状态
+// 格式：{ 'intent-index': { showDescription: boolean, showExamples: boolean } }
+const intentEditStates = ref<Record<string, { showDescription: boolean; showExamples: boolean }>>({})
+
+// 获取意图的编辑状态
+function getIntentState(intentIndex: number) {
+  const key = `intent-${intentIndex}`
+  if (!intentEditStates.value[key]) {
+    intentEditStates.value[key] = { showDescription: false, showExamples: false }
+  }
+  return intentEditStates.value[key]
+}
+
+// 切换描述框显示状态
+function toggleDescription(intentIndex: number) {
+  const key = `intent-${intentIndex}`
+  if (!intentEditStates.value[key]) {
+    intentEditStates.value[key] = { showDescription: false, showExamples: false }
+  }
+  intentEditStates.value[key].showDescription = !intentEditStates.value[key].showDescription
+  // 触发响应式更新
+  intentEditStates.value = { ...intentEditStates.value }
+}
+
+// 切换示例框显示状态
+function toggleExamples(intentIndex: number) {
+  const key = `intent-${intentIndex}`
+  if (!intentEditStates.value[key]) {
+    intentEditStates.value[key] = { showDescription: false, showExamples: false }
+  }
+  intentEditStates.value[key].showExamples = !intentEditStates.value[key].showExamples
+  // 触发响应式更新
+  intentEditStates.value = { ...intentEditStates.value }
+}
 
 // 开始调整宽度
 function startResize(e: MouseEvent) {
@@ -215,6 +273,13 @@ const targetNodeName = computed(() => {
 // 根据节点类型渲染不同的编辑表单
 const nodeType = computed(() => currentNode.value?.type || null)
 
+// 当节点类型为knowledge时，自动加载知识库列表
+watch(nodeType, (newType) => {
+  if (newType === 'knowledge') {
+    fetchKnowledgeBases()
+  }
+}, { immediate: true })
+
 // 节点类型标签
 const nodeTypeLabels: Record<string, string> = {
   start: '开始',
@@ -266,12 +331,12 @@ function getNodeOutputs(node: GraphNode) {
   
   switch (type) {
     case 'start':
-      // Start 节点输出 input_text
+      // Start 节点输出 input_text（显示为"用户输入"）
       outputs.push({
         name: 'input_text',
         type: 'string',
-        label: '输入文本',
-        desc: '开始节点的输入文本'
+        label: '用户输入',
+        desc: '开始节点的用户输入，实际字段名为 input_text'
       })
       break
     case 'llm':
@@ -332,11 +397,11 @@ function getNodeOutputs(node: GraphNode) {
       })
       break
     case 'end':
-      // 结束节点输出 output_text
+      // 结束节点输出 output_text（显示为"工作流输出"）
       outputs.push({
         name: 'output_text',
         type: 'string',
-        label: '输出文本',
+        label: '工作流输出',
         desc: '结束节点的输出文本'
       })
       break
@@ -507,16 +572,17 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">智能体UUID</label>
+                <label class="form-label">模型名称</label>
                 <input
                   type="text"
                   class="form-input"
-                  :value="(nodeData as LLMNodeConfig).agent_uuid || ''"
-                  @input="(e: any) => updateNodeData('agent_uuid', e.target.value)"
+                  :value="(nodeData as LLMNodeConfig).model || 'doubao-seed-1-6-251015'"
+                  placeholder="doubao-seed-1-6-251015"
+                  @input="(e: any) => updateNodeData('model', e.target.value)"
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">提示词（支持变量替换，格式：{'{nodeId.fieldName}'}）</label>
+                <label class="form-label">提示词（必需，支持变量替换，格式：{'{nodeId.fieldName}'}）</label>
                 <div class="input-with-var">
                   <textarea
                     class="form-textarea"
@@ -535,18 +601,18 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">系统提示词</label>
+                <label class="form-label">系统提示词（可选）</label>
                 <div class="input-with-var">
                   <textarea
                     class="form-textarea"
-                    :value="(nodeData as LLMNodeConfig).system_prompt || ''"
-                    @input="(e: any) => updateNodeData('system_prompt', e.target.value)"
+                    :value="(nodeData as LLMNodeConfig).systemPrompt || ''"
+                    @input="(e: any) => updateNodeData('systemPrompt', e.target.value)"
                     rows="3"
                   />
                   <button
                     class="var-trigger"
                     type="button"
-                    @click="openVarSelector(nodeData, 'system_prompt')"
+                    @click="openVarSelector(nodeData, 'systemPrompt')"
                     title="插入变量"
                   >
                     {x}
@@ -554,7 +620,7 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">温度</label>
+                <label class="form-label">温度（0-2，默认0.7）</label>
                 <input
                   type="number"
                   class="form-input"
@@ -564,84 +630,6 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                   step="0.1"
                   @input="(e: any) => updateNodeData('temperature', parseFloat(e.target.value) || 0.7)"
                 />
-              </div>
-              <div class="form-item">
-                <label class="form-label">最大Token数</label>
-                <input
-                  type="number"
-                  class="form-input"
-                  :value="(nodeData as LLMNodeConfig).max_tokens ?? 2000"
-                  min="1"
-                  @input="(e: any) => updateNodeData('max_tokens', parseInt(e.target.value) || 2000)"
-                />
-              </div>
-              <div class="form-item">
-                <label class="form-label">输入字段（支持变量替换，格式：{'{nodeId.fieldName}'}）</label>
-                <div class="key-value-editor">
-                  <div
-                    v-for="(value, key) in (nodeData as LLMNodeConfig).input || {}"
-                    :key="key"
-                    class="key-value-item"
-                  >
-                    <div class="key-value-content">
-                      <div class="key-section">
-                        <input
-                          type="text"
-                          class="form-input key-input"
-                          :value="key"
-                          placeholder="字段名"
-                          @input="(e: any) => {
-                            const newInput = { ...(nodeData as LLMNodeConfig).input || {} }
-                            delete newInput[key]
-                            newInput[e.target.value] = value
-                            updateNodeData('input', newInput)
-                          }"
-                        />
-                      </div>
-                      <div class="value-section">
-                        <div class="input-with-var">
-                          <input
-                            type="text"
-                            class="form-input value-input"
-        :value="value"
-                            placeholder="值或变量 {nodeId.fieldName}"
-                            @input="(e: any) => updateNestedField(['input', key], e.target.value)"
-                          />
-                          <button
-                            class="var-trigger"
-                            type="button"
-                            @click="openVarSelector((nodeData as LLMNodeConfig).input || {}, key)"
-                            title="插入变量"
-                          >
-                            {x}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      class="btn-delete-item"
-                      @click="() => {
-                        const newInput = { ...(nodeData as LLMNodeConfig).input || {} }
-                        delete newInput[key]
-                        updateNodeData('input', newInput)
-                      }"
-                      title="删除此项"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M2 4h12M6 4V2.667A1.333 1.333 0 0 1 7.333 2h1.334A1.333 1.333 0 0 1 10 2.667V4m2 0v9.333A1.333 1.333 0 0 1 10.667 14.667H5.333A1.333 1.333 0 0 1 4 13.333V4h8z" stroke="currentColor" stroke-width="1.5"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <button
-                    class="btn-add"
-                    @click="() => {
-                      const newInput = { ...(nodeData as LLMNodeConfig).input || {}, '': '' }
-                      updateNodeData('input', newInput)
-                    }"
-                  >
-                    + 添加字段
-                  </button>
-                </div>
               </div>
             </div>
           </template>
@@ -847,14 +835,42 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">知识库ID</label>
-                <input
-                  type="number"
-                  class="form-input"
-                  :value="(nodeData as KnowledgeNodeConfig).knowledge_base_id || 1"
-                  min="1"
-                  @input="(e: any) => updateNodeData('knowledge_base_id', parseInt(e.target.value) || 1)"
-                />
+                <label class="form-label">知识库</label>
+                <div class="knowledge-base-selector">
+                  <select
+                    class="form-select"
+                    :value="(nodeData as KnowledgeNodeConfig).knowledge_base_id || ''"
+                    @change="(e: any) => updateNodeData('knowledge_base_id', parseInt(e.target.value) || 1)"
+                  >
+                    <option
+                      v-for="kb in knowledgeBases"
+                      :key="kb.id"
+                      :value="kb.id"
+                    >
+                      {{ kb.name }} (ID: {{ kb.id }})
+                    </option>
+                  </select>
+                  <button
+                    v-if="loadingKnowledgeBases"
+                    class="btn-refresh"
+                    disabled
+                    title="加载中..."
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" class="spinning">
+                      <path d="M13.333 2.667v4h-4M2.667 13.333v-4h4M11.515 4.485A5.333 5.333 0 1 0 4.485 11.515" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button
+                    v-else
+                    class="btn-refresh"
+                    @click="fetchKnowledgeBases"
+                    title="刷新知识库列表"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M13.333 2.667v4h-4M2.667 13.333v-4h4M11.515 4.485A5.333 5.333 0 1 0 4.485 11.515" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">查询文本（支持变量替换）</label>
@@ -915,140 +931,149 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">输入文本（支持变量替换）</label>
-                <div class="input-with-var">
-                  <input
-                    type="text"
-                    class="form-input"
-                    :value="(nodeData as IntentNodeConfig).input_text || ''"
-                    placeholder="用户输入的文本或 {nodeId.fieldName}"
-                    @input="(e: any) => updateNodeData('input_text', e.target.value)"
-                  />
-                  <button
-                    class="var-trigger"
-                    type="button"
-                    @click="openVarSelector(nodeData, 'input_text')"
-                    title="插入变量"
-                  >
-                    {x}
-                  </button>
-                </div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">意图类别</label>
-                <div class="array-editor">
+                <label class="form-label">意图列表（必需）</label>
+                <div class="intents-editor">
                   <div
-                    v-for="(category, index) in (nodeData as IntentNodeConfig).intent_categories || []"
+                    v-for="(intent, index) in (nodeData as IntentNodeConfig).intents || []"
                     :key="index"
-                    class="array-item-row"
+                    class="intent-item"
                   >
-                    <input
-                      type="text"
-                      class="form-input"
-                      :value="category"
-                      @input="(e: any) => {
-                        const newCategories = [...(nodeData as IntentNodeConfig).intent_categories || []]
-                        newCategories[index] = e.target.value
-                        updateNodeData('intent_categories', newCategories)
-                      }"
-                    />
-                    <button
-                      class="btn-delete"
-                      @click="() => {
-                        const newCategories = [...(nodeData as IntentNodeConfig).intent_categories || []]
-                        newCategories.splice(index, 1)
-                        updateNodeData('intent_categories', newCategories)
-                      }"
-                    >
-                      删除
-                    </button>
-                  </div>
-                  <button
-                    class="btn-add"
-                    @click="() => {
-                      const newCategories = [...(nodeData as IntentNodeConfig).intent_categories || [], '']
-                      updateNodeData('intent_categories', newCategories)
-                    }"
-                  >
-                    + 添加类别
-                  </button>
-                </div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">识别方式</label>
-                <select
-                  class="form-select"
-                  :value="(nodeData as IntentNodeConfig).recognition_method || 'llm'"
-                  @change="(e: any) => updateNodeData('recognition_method', e.target.value)"
-                >
-                  <option value="llm">LLM</option>
-                  <option value="keyword">关键词</option>
-                </select>
-              </div>
-              <div v-if="(nodeData as IntentNodeConfig).recognition_method === 'llm'" class="form-item">
-                <label class="form-label">智能体UUID</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  :value="(nodeData as IntentNodeConfig).agent_uuid || ''"
-                  @input="(e: any) => updateNodeData('agent_uuid', e.target.value)"
-                />
-              </div>
-              <div v-if="(nodeData as IntentNodeConfig).recognition_method === 'keyword'" class="form-item">
-                <label class="form-label">关键词映射</label>
-                <div class="key-value-editor">
-                  <div
-                    v-for="(keywords, intent) in (nodeData as IntentNodeConfig).keywords || {}"
-                    :key="intent"
-                    class="keyword-group"
-                  >
-                    <div class="keyword-group-header">
-                      <input
-                        type="text"
-                        class="form-input"
-                        :value="intent"
-                        placeholder="意图名称"
+                    <!-- 意图头部：ID、名称、操作按钮 -->
+                    <div class="intent-item-header-new">
+                      <div class="intent-id-name-row">
+                        <input
+                          type="text"
+                          class="form-input intent-id-input"
+                          :value="intent.id || ''"
+                          placeholder="意图ID（如：faq）"
+                          @input="(e: any) => {
+                            const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                            newIntents[index] = { ...newIntents[index], id: e.target.value || '', name: newIntents[index]?.name || '' }
+                            updateNodeData('intents', newIntents)
+                          }"
+                        />
+                        <input
+                          type="text"
+                          class="form-input intent-name-input"
+                          :value="intent.name || ''"
+                          placeholder="意图名称（如：常规问答）"
+                          @input="(e: any) => {
+                            const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                            newIntents[index] = { ...newIntents[index], id: newIntents[index]?.id || '', name: e.target.value || '' }
+                            updateNodeData('intents', newIntents)
+                          }"
+                        />
+                      </div>
+                      <div class="intent-actions">
+                        <button
+                          class="btn-toggle"
+                          :class="{ 
+                            'has-content': intent.description !== undefined && intent.description !== '' && intent.description.trim() !== '',
+                            'is-expanded': getIntentState(index).showDescription
+                          }"
+                          @click="toggleDescription(index)"
+                          title="显示/隐藏描述"
+                        >
+                          描述
+                        </button>
+                        <button
+                          class="btn-toggle"
+                          :class="{ 
+                            'has-content': intent.examples && intent.examples.length > 0 && intent.examples.some((e: string) => e && e.trim() !== ''),
+                            'is-expanded': getIntentState(index).showExamples
+                          }"
+                          @click="toggleExamples(index)"
+                          title="显示/隐藏示例"
+                        >
+                          示例
+                        </button>
+                        <button
+                          class="btn-icon btn-delete-icon"
+                          @click="() => {
+                            const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                            newIntents.splice(index, 1)
+                            updateNodeData('intents', newIntents)
+                          }"
+                          title="删除意图"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <!-- 描述输入框（条件显示） -->
+                    <div v-if="getIntentState(index).showDescription" class="intent-description-section">
+                      <textarea
+                        class="form-textarea"
+                        :value="intent.description || ''"
+                        placeholder="意图描述（可选）"
+                        rows="2"
                         @input="(e: any) => {
-                          const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {} }
-                          delete newKeywords[intent]
-                          newKeywords[e.target.value] = keywords
-                          updateNodeData('keywords', newKeywords)
+                          const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                          const currentIntent = newIntents[index]
+                          if (currentIntent) {
+                            newIntents[index] = { ...currentIntent, description: e.target.value }
+                            updateNodeData('intents', newIntents)
+                          }
                         }"
                       />
-                      <button
-                        class="btn-delete"
-                        @click="() => {
-                          const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {} }
-                          delete newKeywords[intent]
-                          updateNodeData('keywords', newKeywords)
-                        }"
-                      >
-                        删除
-                      </button>
                     </div>
-                    <div class="keyword-list">
+                    <!-- 示例列表（条件显示） -->
+                    <div v-if="getIntentState(index).showExamples" class="intent-examples-section">
                       <div
-                        v-for="(keyword, idx) in keywords"
-                        :key="idx"
-                        class="keyword-item"
+                        v-for="(example, exIndex) in (intent.examples && intent.examples.length > 0 ? intent.examples : [''])"
+                        :key="`${index}-${exIndex}`"
+                        class="example-item"
                       >
                         <input
                           type="text"
                           class="form-input"
-                          :value="keyword"
+                          :value="example"
+                          placeholder="输入示例"
                           @input="(e: any) => {
-                            const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {} }
-                            newKeywords[intent] = [...keywords]
-                            newKeywords[intent][idx] = e.target.value
-                            updateNodeData('keywords', newKeywords)
+                            const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                            const currentIntent = newIntents[index]
+                            if (currentIntent) {
+                              // 如果examples不存在，创建数组
+                              const currentExamples = currentIntent.examples || []
+                              const newExamples = [...currentExamples]
+                              // 如果当前索引超出数组长度，扩展数组
+                              while (newExamples.length <= exIndex) {
+                                newExamples.push('')
+                              }
+                              newExamples[exIndex] = e.target.value
+                              // 移除末尾的空字符串（但保留至少一个元素）
+                              while (newExamples.length > 1 && newExamples[newExamples.length - 1] === '') {
+                                newExamples.pop()
+                              }
+                              newIntents[index] = { ...currentIntent, examples: newExamples }
+                              updateNodeData('intents', newIntents)
+                            }
                           }"
                         />
                         <button
                           class="btn-delete-small"
                           @click="() => {
-                            const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {} }
-                            newKeywords[intent] = keywords.filter((_, i) => i !== idx)
-                            updateNodeData('keywords', newKeywords)
+                            const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                            const currentIntent = newIntents[index]
+                            if (currentIntent) {
+                              const currentExamples = currentIntent.examples || []
+                              if (currentExamples.length > 0) {
+                                const newExamples = [...currentExamples]
+                                newExamples.splice(exIndex, 1)
+                                if (newExamples.length === 0 || (newExamples.length === 1 && newExamples[0] === '')) {
+                                  // 如果删除后为空或只有一个空字符串，删除examples字段
+                                  const { examples, ...rest } = currentIntent
+                                  newIntents[index] = rest
+                                } else {
+                                  newIntents[index] = { ...currentIntent, examples: newExamples }
+                                }
+                              } else {
+                                // 如果examples不存在，删除整个examples字段
+                                const { examples, ...rest } = currentIntent
+                                newIntents[index] = rest
+                              }
+                              updateNodeData('intents', newIntents)
+                            }
                           }"
                         >
                           ×
@@ -1057,25 +1082,51 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                       <button
                         class="btn-add-small"
                         @click="() => {
-                          const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {} }
-                          newKeywords[intent] = [...keywords, '']
-                          updateNodeData('keywords', newKeywords)
+                          const newIntents = [...(nodeData as IntentNodeConfig).intents || []]
+                          const currentIntent = newIntents[index]
+                          if (currentIntent) {
+                            const currentExamples = currentIntent.examples || []
+                            const newExamples = [...currentExamples, '']
+                            newIntents[index] = { ...currentIntent, examples: newExamples }
+                            updateNodeData('intents', newIntents)
+                          }
                         }"
                       >
-                        + 添加关键词
+                        + 添加示例
                       </button>
                     </div>
                   </div>
                   <button
                     class="btn-add"
                     @click="() => {
-                      const newKeywords = { ...(nodeData as IntentNodeConfig).keywords || {}, '': [] }
-                      updateNodeData('keywords', newKeywords)
+                      const newIntents = [...(nodeData as IntentNodeConfig).intents || [], { id: '', name: '' }]
+                      updateNodeData('intents', newIntents)
                     }"
                   >
-                    + 添加意图组
+                    + 添加意图
                   </button>
                 </div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">模型名称（可选，默认 doubao-seed-1-6-251015）</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  :value="(nodeData as IntentNodeConfig).model || 'doubao-seed-1-6-251015'"
+                  @input="(e: any) => updateNodeData('model', e.target.value)"
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">温度（可选，默认0.2）</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  :value="(nodeData as IntentNodeConfig).temperature ?? 0.2"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  @input="(e: any) => updateNodeData('temperature', parseFloat(e.target.value) || 0.2)"
+                />
               </div>
             </div>
           </template>
@@ -1196,12 +1247,13 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">输入文本</label>
-                <textarea
-                  class="form-textarea"
-                  :value="(nodeData as StartNodeConfig).input_text || ''"
+                <label class="form-label">用户输入</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  :value="(nodeData as any).input_text || ''"
+                  placeholder="用户输入文本"
                   @input="(e: any) => updateNodeData('input_text', e.target.value)"
-                  rows="3"
                 />
               </div>
             </div>
@@ -1220,14 +1272,14 @@ function selectVariable(variable: typeof availableVars.value[0]) {
                 />
               </div>
               <div class="form-item">
-                <label class="form-label">输出文本（支持变量替换）</label>
+                <label class="form-label">工作流输出（支持变量替换）</label>
                 <div class="input-with-var">
-                  <textarea
-                    class="form-textarea"
+                  <input
+                    type="text"
+                    class="form-input"
                     :value="(nodeData as EndNodeConfig).output_text || ''"
                     placeholder="最终结果或 {nodeId.fieldName}"
                     @input="(e: any) => updateNodeData('output_text', e.target.value)"
-                    rows="3"
                   />
                   <button
                     class="var-trigger"
@@ -1622,6 +1674,56 @@ function selectVariable(variable: typeof availableVars.value[0]) {
   padding-right: 36px;
 }
 
+.knowledge-base-selector {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.knowledge-base-selector .form-select {
+  flex: 1;
+}
+
+.btn-refresh {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f8fa;
+  border: 1.5px solid #d0d7de;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #656d76;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #0969da;
+  border-color: #0969da;
+  color: white;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-refresh .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .form-readonly {
   padding: 10px 12px;
   background: #f6f8fa;
@@ -1756,16 +1858,33 @@ function selectVariable(variable: typeof availableVars.value[0]) {
 }
 
 .btn-delete-small {
-  padding: 4px 8px;
+  padding: 4px;
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: white;
+  border-radius: 4px;
   font-size: 14px;
-  min-width: 32px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 28px;
+  min-width: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.btn-delete:hover,
-.btn-delete-small:hover {
+.btn-delete:hover {
   background: #b91c1c;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.btn-delete-small:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 .btn-add,
@@ -1785,15 +1904,32 @@ function selectVariable(variable: typeof availableVars.value[0]) {
 }
 
 .btn-add-small {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 8px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
 }
 
-.btn-add:hover,
-.btn-add-small:hover {
+.btn-add:hover {
   background: #0860ca;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(9, 105, 218, 0.2);
+}
+
+.btn-add-small:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
 }
 
 .array-editor {
@@ -1956,6 +2092,13 @@ function selectVariable(variable: typeof availableVars.value[0]) {
   right: 10px;
 }
 
+/* 变量替换按钮居中 */
+.var-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ========== 意图识别节点样式 ========== */
 .form-hint {
   margin: 6px 0 0 0;
@@ -2008,6 +2151,248 @@ function selectVariable(variable: typeof availableVars.value[0]) {
 
 .intent-name-input {
   width: 100%;
+}
+
+/* ========== 新的意图识别节点样式 ========== */
+.intents-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intent-item {
+  padding: 12px;
+  background: #f6f8fa;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intent-item-header-new {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.intent-id-name-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.intent-id-input {
+  flex: 0 0 60px;
+  padding: 4px 6px;
+  font-size: 12px;
+  height: 28px;
+  line-height: 1.2;
+}
+
+.intent-name-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  height: 28px;
+  line-height: 1.2;
+}
+
+.intent-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.btn-icon {
+  padding: 4px 4px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}
+
+.btn-icon:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
+}
+
+.btn-icon.active {
+  background: #0969da;
+  border-color: #0969da;
+  color: white;
+}
+
+/* 描述和示例切换按钮样式 */
+.btn-toggle {
+  padding: 4px 4px;
+  background: white;
+  border: 1.5px solid #d0d7de;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-toggle:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
+  box-shadow: 0 2px 4px rgba(9, 105, 218, 0.1);
+  transform: translateY(-1px);
+}
+
+/* 按钮有内容时的样式（浅蓝色背景） */
+.btn-toggle.has-content {
+  background: #e3f2fd;
+  border-color: #90caf9;
+  color: #1976d2;
+}
+
+.btn-toggle.has-content:hover {
+  background: #bbdefb;
+  border-color: #64b5f6;
+  color: #1565c0;
+}
+
+/* 按钮展开时的样式（深蓝色背景） */
+.btn-toggle.is-expanded {
+  background: #0969da;
+  border-color: #0969da;
+  color: white;
+  box-shadow: 0 2px 4px rgba(9, 105, 218, 0.2);
+}
+
+.btn-toggle.is-expanded:hover {
+  background: #0860ca;
+  border-color: #0860ca;
+  color: white;
+}
+
+/* 按钮既有内容又展开时的样式 */
+.btn-toggle.has-content.is-expanded {
+  background: #0969da;
+  border-color: #0969da;
+  color: white;
+}
+
+.btn-delete-icon {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: white;
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+  height: 28px;
+  min-width: 28px;
+  width: 28px;
+}
+
+.btn-delete-icon:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.intent-description-section {
+  margin-top: 8px;
+}
+
+.intent-examples-section {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intent-examples-section .form-label-small {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #656d76;
+}
+
+.example-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  height: 28px;
+}
+
+.example-item .form-input {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  height: 28px;
+  line-height: 1.2;
+}
+
+.btn-delete-small {
+  padding: 4px;
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 28px;
+  min-width: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-delete-small:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-add-small {
+  padding: 4px 8px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #24292f;
+  cursor: pointer;
+  transition: all 0.2s;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+}
+
+.btn-add-small:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  color: #0969da;
 }
 
 .keyword-list-section {

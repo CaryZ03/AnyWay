@@ -32,40 +32,33 @@ export interface BaseNodeConfig {
  * 开始节点配置
  *
  * 对于当前实现，开始节点只负责把「用户输入」包装成统一的输入数据，
- * 实际字段在运行时由后端注入，这里不需要额外配置，因此保持为空对象。
+ * 实际字段在运行时由后端注入，这里不需要额外配置。
  */
 export interface StartNodeConfig extends BaseNodeConfig {
-  input_text: string
+  // 开始节点不需要额外配置，后端会自动从context获取user_input
 }
 
 /**
  * LLM 节点配置
+ * 注意：字段名使用camelCase以匹配后端期望（systemPrompt而不是system_prompt）
  */
 export interface LLMNodeConfig extends BaseNodeConfig {
   /**
-   * 关联的智能体UUID
+   * 模型名称，默认 doubao-seed-1-6-251015
    */
-  agent_uuid: string
+  model?: string
   /**
-   * 输入，支持变量替换，格式如 {nodeId.fieldName}
+   * 系统提示词（可选，有默认值）
    */
-  input: Record<string, string>
+  systemPrompt?: string
   /**
-   * 提示词，支持变量替换，格式如 {nodeId.fieldName}
+   * 用户提示词模板（必需），支持变量替换，格式如 {nodeId.fieldName}
    */
   prompt: string
-  /**
-   * 系统提示词
-   */
-  system_prompt: string
   /**
    * 温度参数，范围0-2，默认0.7
    */
   temperature?: number
-  /**
-   * 最大生成token数，默认2000
-   */
-  max_tokens?: number
 }
 
 /**
@@ -114,28 +107,26 @@ export interface KnowledgeNodeConfig extends BaseNodeConfig {
 
 /**
  * 意图识别节点配置
+ * 注意：后端使用LLM进行意图识别，需要提供意图列表
  */
 export interface IntentNodeConfig extends BaseNodeConfig {
   /**
-   * 输入文本，支持变量替换，格式如 {nodeId.fieldName}
+   * 意图列表（必需），每个意图包含id、name、description、examples
    */
-  input_text: string
+  intents: Array<{
+    id: string
+    name: string
+    description?: string
+    examples?: string[]
+  }>
   /**
-   * 意图类别列表
+   * 模型名称，默认 doubao-seed-1-6-251015
    */
-  intent_categories: string[]
+  model?: string
   /**
-   * 识别方式：llm 或 keyword
+   * 温度参数，默认0.2
    */
-  recognition_method: 'llm' | 'keyword'
-  /**
-   * LLM识别方式时需要的智能体UUID
-   */
-  agent_uuid?: string
-  /**
-   * 关键词匹配方式时的关键词映射
-   */
-  keywords?: Record<string, string[]>
+  temperature?: number
 }
 
 
