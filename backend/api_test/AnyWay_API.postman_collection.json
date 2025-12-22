@@ -158,6 +158,60 @@
           }
         },
         {
+          "name": "获取智能体对话历史",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/conversations/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "conversations", ""]
+            }
+          }
+        },
+        {
+          "name": "为智能体添加插件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plugin_ids\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/add_plugins/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "add_plugins", ""]
+            }
+          }
+        },
+        {
+          "name": "从智能体删除插件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plugin_ids\": [1]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/agents/1/remove_plugins/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "agents", "1", "remove_plugins", ""]
+            }
+          }
+        },
+        {
           "name": "删除智能体",
           "request": {
             "method": "DELETE",
@@ -212,6 +266,27 @@
           "request": {
             "method": "GET",
             "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workflows/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "workflows", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "更新工作流",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"更新后的工作流描述\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/workflows/1/",
               "host": ["{{baseUrl}}"],
@@ -303,6 +378,82 @@
           }
         },
         {
+          "name": "更新知识库",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"更新后的知识库描述\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "上传文档到知识库",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/upload/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", "upload", ""]
+            }
+          }
+        },
+        {
+          "name": "获取知识库文档列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/documents/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", "documents", ""]
+            }
+          }
+        },
+        {
+          "name": "搜索知识库",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"搜索关键词\",\n  \"top_k\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/knowledge/1/search/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "knowledge", "1", "search", ""]
+            }
+          }
+        },
+        {
           "name": "删除知识库",
           "request": {
             "method": "DELETE",
@@ -365,6 +516,27 @@
           }
         },
         {
+          "name": "更新插件",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"更新后的插件描述\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/1/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", "1", ""]
+            }
+          }
+        },
+        {
           "name": "启用插件",
           "request": {
             "method": "POST",
@@ -378,6 +550,23 @@
               "raw": "{{baseUrl}}/api/v1/plugins/1/enable/",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "plugins", "1", "enable", ""]
+            }
+          }
+        },
+        {
+          "name": "禁用插件",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/plugins/1/disable/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "plugins", "1", "disable", ""]
             }
           }
         },
