@@ -10,18 +10,22 @@ export interface NodePosition {
   y: number
 }
 
-export interface InputBinding {
-  nodeId: string
-  fieldName: string
-  fieldType: string
-}
+/**
+ * 节点输出字段定义
+ * 每个节点类型都有固定的输出字段
+ */
+export const NODE_OUTPUT_FIELDS = {
+  start: ['input_text'], // 开始节点输出用户输入
+  llm: ['response'], // LLM节点输出response
+  http: ['status', 'data'], // HTTP节点输出状态码和数据
+  knowledge: ['documents'], // 知识库节点输出找到的所有文件内容列表
+  intent: ['intent', 'confidence'], // 意图识别节点输出意图和置信度
+  string: ['result'], // 字符串处理节点输出处理结果
+  end: ['output_text'], // 结束节点输出最终文本
+} as const
 
 export interface BaseNodeConfig {
   name: string
-  /**
-   * 输出配置，支持任意 JSON 格式
-   */
-  output: any
 }
 
 /**
@@ -43,13 +47,17 @@ export interface LLMNodeConfig extends BaseNodeConfig {
    */
   agent_uuid: string
   /**
-   * 输入，支持变量替换
+   * 输入，支持变量替换，格式如 {nodeId.fieldName}
    */
-  input: Record<string, any> | Record<string, InputBinding>
+  input: Record<string, string>
   /**
-   * 提示词
+   * 提示词，支持变量替换，格式如 {nodeId.fieldName}
    */
   prompt: string
+  /**
+   * 系统提示词
+   */
+  system_prompt: string
   /**
    * 温度参数，范围0-2，默认0.7
    */
@@ -65,21 +73,21 @@ export interface LLMNodeConfig extends BaseNodeConfig {
  */
 export interface HTTPNodeConfig extends BaseNodeConfig {
   /**
-   * 请求URL，支持变量替换
+   * 请求URL，支持变量替换，格式如 {nodeId.fieldName}
    */
-  url: string | InputBinding
+  url: string
   /**
    * 请求方法，支持GET/POST，默认GET
    */
   method?: 'GET' | 'POST'
   /**
-   * 请求头，支持变量替换
+   * 请求头，支持变量替换，格式如 {nodeId.fieldName}
    */
-  headers?: Record<string, string> | Record<string, InputBinding>
+  headers?: Record<string, string>
   /**
-   * 请求体（POST请求时使用），支持变量替换
+   * 请求体（POST请求时使用），支持变量替换，格式如 {nodeId.fieldName}
    */
-  body?: Record<string, any> | Record<string, InputBinding>
+  body?: Record<string, string>
 }
 
 /**
@@ -91,9 +99,9 @@ export interface KnowledgeNodeConfig extends BaseNodeConfig {
    */
   knowledge_base_id: number
   /**
-   * 查询文本，支持变量替换
+   * 查询文本，支持变量替换，格式如 {nodeId.fieldName}
    */
-  query: string | InputBinding
+  query: string
   /**
    * 返回最相似的K个文档块，范围1-10，默认5
    */
@@ -109,9 +117,9 @@ export interface KnowledgeNodeConfig extends BaseNodeConfig {
  */
 export interface IntentNodeConfig extends BaseNodeConfig {
   /**
-   * 输入文本，支持变量替换
+   * 输入文本，支持变量替换，格式如 {nodeId.fieldName}
    */
-  input: string | InputBinding
+  input_text: string
   /**
    * 意图类别列表
    */
@@ -141,9 +149,9 @@ export interface StringNodeConfig extends BaseNodeConfig {
    */
   operation: 'concat' | 'replace' | 'substring' | 'format' | 'trim' | 'upper' | 'lower'
   /**
-   * 输入字符串，支持变量替换
+   * 输入字符串，支持变量替换，格式如 {nodeId.fieldName}
    */
-  input_string: string | InputBinding
+  input_string: string
   /**
    * 处理参数，根据操作类型不同而不同
    */
@@ -157,7 +165,10 @@ export interface StringNodeConfig extends BaseNodeConfig {
  * 因此暂时不需要额外配置。
  */
 export interface EndNodeConfig extends BaseNodeConfig {
-  output_text: string | InputBinding
+  /**
+   * 输出文本，支持变量替换，格式如 {nodeId.fieldName}
+   */
+  output_text: string
 }
 
 /**

@@ -463,29 +463,23 @@ const handleCreateWorkflow = async () => {
       name: name.trim(),
       description: description.trim() || undefined,
       nodes: [{
-        id: 'node-end',
+        id: 'node-start',
         type: 'start',
         data: {
-          name: '开始节点',
-          input_text: '用户输入',
-          output: {
-            result: 'str'
-          }
+          name: '开始',
+          input_text: '用户输入'
         },
         position: { x: 250, y: 0 }
-      }, 
+      },
       {
         id: 'node-end',
         type: 'end',
         data: {
-          name: '结束节点',
+          name: '结束',
           output_text: '最终结果',
-          output: {
-            final_answer: 'str'
-          }
         },
         position: { x: 300, y: 400 }
-      },],
+      }],
       edges: [],
       config: {},
     }

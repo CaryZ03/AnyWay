@@ -53,12 +53,12 @@ const nodeClass = computed(() => {
   min-width: 140px;
   font-size: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
+  /* 只过渡 box-shadow 和 border-color，完全避免 transform 导致的模糊 */
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .custom-node:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
   border-color: #cbd5e0;
 }
 

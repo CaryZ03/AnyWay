@@ -28,16 +28,17 @@ const nodeIcon = computed(() => {
 
 // 根据节点类型获取显示标签
 const nodeLabel = computed(() => {
-  const typeMap: Record<string, string> = {
-    start: '开始',
-    end: '结束',
-    llm: 'LLM',
-    http: 'HTTP',
-    knowledge: '知识库',
-    intent: '意图识别',
-    string: '字符串处理',
-  }
-  return typeMap[props.node.type || 'custom'] || '节点'
+  // const typeMap: Record<string, string> = {
+  //   start: '开始',
+  //   end: '结束',
+  //   llm: 'LLM',
+  //   http: 'HTTP',
+  //   knowledge: '知识库',
+  //   intent: '意图识别',
+  //   string: '字符串处理',
+  // }
+  // return typeMap[props.node.type || 'custom'] || '节点'
+  return props.node.data.name || '节点'
 })
 
 // 根据节点类型获取显示内容
@@ -80,31 +81,32 @@ const nodeInputLabels = computed(() => {
 
 // 根据节点类型获取显示内容
 const nodeOutputLabels = computed(() => {
-  const data = props.node.data
-  if (!data || !data.output) return []
-
-  return Object.entries(data.output).map(([key, value]) => ({ name: key, type: value }))
+  const nodeType = props.node.type
+  if (!nodeType) return []
+  
+  // 使用固定的输出字段定义
+  const outputFields = {
+    start: ['input_text'],
+    llm: ['response'],
+    http: ['status', 'data'],
+    knowledge: ['documents'],
+    intent: ['intent', 'confidence'],
+    string: ['result'],
+    end: ['output_text'],
+  } as Record<string, string[]>
+  
+  const fields = outputFields[nodeType] || []
+  return fields.map(field => ({ name: field, type: 'any' }))
 })
-
-/**
- * 判断是否为 InputBinding
- */
-function isInputBinding(value: any): boolean {
-  return (
-    value &&
-    typeof value === 'object' &&
-    'nodeId' in value &&
-    'fieldName' in value
-  )
-}
 
 /**
  * 格式化配置值显示
  */
 function formatConfigValue(value: any): string {
   if (value === null || value === undefined) return '-'
-  if (isInputBinding(value)) {
-    return `@${value.nodeId}.${value.fieldName}`
+  if (typeof value === 'string' && value.includes('{') && value.includes('}')) {
+    // 如果包含变量替换格式，显示为变量
+    return value
   }
   if (typeof value === 'object') {
     if (Array.isArray(value)) {
@@ -136,6 +138,13 @@ const nodeConfigs = computed(() => {
           : formatConfigValue(llmData.prompt)
         configs.push({ label: '提示词', value: prompt })
       }
+      // 显示输入字段（可能包含变量替换）
+      if (llmData.input && typeof llmData.input === 'object') {
+        const inputKeys = Object.keys(llmData.input)
+        if (inputKeys.length > 0) {
+          configs.push({ label: '输入字段', value: `${inputKeys.length}个` })
+        }
+      }
       if (llmData.temperature !== undefined) {
         configs.push({ label: '温度', value: String(llmData.temperature) })
       }
@@ -152,6 +161,13 @@ const nodeConfigs = computed(() => {
           : formatConfigValue(httpData.url)
         configs.push({ label: 'URL', value: url })
       }
+      // 显示请求体（可能包含变量替换）
+      if (httpData.body && typeof httpData.body === 'object') {
+        const bodyKeys = Object.keys(httpData.body)
+        if (bodyKeys.length > 0) {
+          configs.push({ label: '请求体', value: `${bodyKeys.length}个字段` })
+        }
+      }
       if (httpData.method) {
         configs.push({ label: '方法', value: httpData.method })
       }
@@ -161,6 +177,12 @@ const nodeConfigs = computed(() => {
       const kbData = data as any
       if (kbData.knowledge_base_id !== undefined) {
         configs.push({ label: '知识库ID', value: String(kbData.knowledge_base_id) })
+      }
+      if (kbData.query) {
+        const query = typeof kbData.query === 'string'
+          ? (kbData.query.length > 20 ? kbData.query.substring(0, 20) + '...' : kbData.query)
+          : formatConfigValue(kbData.query)
+        configs.push({ label: '查询', value: query })
       }
       if (kbData.top_k !== undefined) {
         configs.push({ label: 'Top K', value: String(kbData.top_k) })
@@ -185,6 +207,12 @@ const nodeConfigs = computed(() => {
         const keywordCount = Object.keys(intentData.keywords).length
         configs.push({ label: '关键词组', value: `${keywordCount}组` })
       }
+      if (intentData.input) {
+        const input = typeof intentData.input === 'string'
+          ? (intentData.input.length > 20 ? intentData.input.substring(0, 20) + '...' : intentData.input)
+          : formatConfigValue(intentData.input)
+        configs.push({ label: '输入', value: input })
+      }
       break
     }
     case 'string': {
@@ -200,6 +228,12 @@ const nodeConfigs = computed(() => {
           lower: '转小写'
         }
         configs.push({ label: '操作', value: operationMap[stringData.operation] || stringData.operation })
+      }
+      if (stringData.input_string) {
+        const inputString = typeof stringData.input_string === 'string'
+          ? (stringData.input_string.length > 20 ? stringData.input_string.substring(0, 20) + '...' : stringData.input_string)
+          : formatConfigValue(stringData.input_string)
+        configs.push({ label: '输入字符串', value: inputString })
       }
       break
     }

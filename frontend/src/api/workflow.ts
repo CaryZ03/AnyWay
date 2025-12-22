@@ -44,7 +44,13 @@ function toBackendRequest(form: WorkflowForm): BackendWorkflowRequest {
   }
 }
 
-export const workflowApi = {
+// ========== 后端 API（保留原有接口） ==========
+
+/**
+ * 后端 Workflow API
+ * 用于调用后端接口
+ */
+export const backendWorkflowApi = {
   /**
    * 获取工作流列表
    */
@@ -60,6 +66,7 @@ export const workflowApi = {
   async getDetail(id: string): Promise<WorkflowForm> {
     console.log('getDetail', id)
     const data = await request.get<BackendWorkflow>(`/workflows/${id}/`)
+    console.log('data', data)
     return transformWorkflow(data)
   },
 
@@ -115,6 +122,273 @@ export const workflowApi = {
   },
 }
 
+// ========== 本地存储 API ==========
+
+/**
+ * 本地存储文件路径（相对于public目录）
+ */
+const LOCAL_STORAGE_FILE = '/workflows.json'
+
+/**
+ * 从本地文件读取workflow数据
+ */
+async function readLocalWorkflows(): Promise<BackendWorkflow[]> {
+  try {
+    const response = await fetch(LOCAL_STORAGE_FILE)
+    if (!response.ok) {
+      // 如果文件不存在，返回空数组
+      return []
+    }
+    const data = await response.json()
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.warn('读取本地workflow文件失败，返回空数组:', error)
+    return []
+  }
+}
+
+/**
+ * 保存workflow数据到localStorage
+ * 注意：由于浏览器安全限制，无法直接写入文件
+ * 这里使用localStorage作为主要存储方式
+ */
+function saveLocalWorkflows(workflows: BackendWorkflow[]): void {
+  try {
+    // 保存到localStorage
+    localStorage.setItem('workflows_data', JSON.stringify(workflows))
+    console.log('已保存workflow数据到localStorage，共', workflows.length, '个工作流')
+  } catch (error) {
+    console.error('保存workflow数据失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 从localStorage读取workflow数据（优先）
+ */
+function readFromLocalStorage(): BackendWorkflow[] {
+  try {
+    const data = localStorage.getItem('workflows_data')
+    if (data) {
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.warn('从localStorage读取workflow数据失败:', error)
+  }
+  return []
+}
+
+/**
+ * 本地存储 Workflow API
+ * 使用 localStorage 作为存储方式
+ */
+export const localWorkflowApi = {
+  /**
+   * 获取工作流列表
+   */
+  async getList(): Promise<WorkflowForm[]> {
+    // 优先从localStorage读取，如果没有则尝试从文件读取
+    let workflows = readFromLocalStorage()
+    if (workflows.length === 0) {
+      workflows = await readLocalWorkflows()
+    }
+    if (!Array.isArray(workflows)) return []
+    return workflows.map(transformWorkflow)
+  },
+
+  /**
+   * 获取工作流详情
+   */
+  async getDetail(id: string): Promise<WorkflowForm> {
+    console.log('getDetail', id)
+    // 从localStorage或文件读取
+    let workflows = readFromLocalStorage()
+    if (workflows.length === 0) {
+      workflows = await readLocalWorkflows()
+    }
+    const workflow = workflows.find(w => w.id === id)
+    if (!workflow) {
+      throw new Error(`工作流 ${id} 不存在`)
+    }
+    console.log('data', workflow)
+    return transformWorkflow(workflow)
+  },
+
+  /**
+   * 创建工作流
+   */
+  async create(form: WorkflowForm): Promise<WorkflowForm> {
+    const payload = toBackendRequest(form)
+    // 生成ID
+    const newId = `workflow-${Date.now()}`
+    const newWorkflow: BackendWorkflow = {
+      ...payload,
+      id: newId,
+      status: payload.status || 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    
+    // 读取现有数据
+    let workflows = readFromLocalStorage()
+    if (workflows.length === 0) {
+      workflows = await readLocalWorkflows()
+    }
+    
+    // 添加新工作流
+    workflows.push(newWorkflow)
+    
+    // 保存
+    saveLocalWorkflows(workflows)
+    
+    return transformWorkflow(newWorkflow)
+  },
+
+  /**
+   * 更新工作流
+   */
+  async update(id: string, form: WorkflowForm): Promise<WorkflowForm> {
+    const payload = toBackendRequest(form)
+    
+    // 读取现有数据
+    let workflows = readFromLocalStorage()
+    if (workflows.length === 0) {
+      workflows = await readLocalWorkflows()
+    }
+    
+    // 查找并更新
+    const index = workflows.findIndex(w => w.id === id)
+    if (index === -1) {
+      throw new Error(`工作流 ${id} 不存在`)
+    }
+    
+    const existingWorkflow = workflows[index]
+    if (!existingWorkflow) {
+      throw new Error(`工作流 ${id} 不存在`)
+    }
+    
+    const updatedWorkflow: BackendWorkflow = {
+      ...existingWorkflow,
+      ...payload,
+      id: id,
+      status: payload.status || existingWorkflow.status || 'draft',
+      updated_at: new Date().toISOString(),
+    }
+    
+    workflows[index] = updatedWorkflow
+    
+    // 保存
+    saveLocalWorkflows(workflows)
+    
+    return transformWorkflow(updatedWorkflow)
+  },
+
+  /**
+   * 执行工作流（主要用于调试）
+   */
+  async execute(id: string, input: WorkflowExecuteRequest['input_data']): Promise<WorkflowExecutionResponse> {
+    // 暂时返回模拟数据
+    console.warn('执行工作流功能暂时不可用（使用本地存储模式）')
+    return {
+      id: Date.now(),
+      workflow: parseInt(id) || 0,
+      input_data: input,
+      output_data: {},
+      status: 'completed',
+      node_status: {},
+      created_at: new Date().toISOString(),
+    }
+  },
+
+  /**
+   * 删除工作流（逻辑删除）
+   */
+  async delete(workflowId: string): Promise<void> {
+    // 读取现有数据
+    let workflows = readFromLocalStorage()
+    if (workflows.length === 0) {
+      workflows = await readLocalWorkflows()
+    }
+    
+    // 过滤掉要删除的工作流
+    const filtered = workflows.filter(w => w.id !== workflowId)
+    
+    if (filtered.length === workflows.length) {
+      throw new Error(`工作流 ${workflowId} 不存在`)
+    }
+    
+    // 保存
+    saveLocalWorkflows(filtered)
+  },
+
+  /**
+   * 获取工作流执行历史列表
+   */
+  async getExecutions(_workflowId: string): Promise<WorkflowExecutionResponse[]> {
+    // 暂时返回空数组
+    console.warn('获取执行历史功能暂时不可用（使用本地存储模式）')
+    return []
+  },
+
+  /**
+   * 获取工作流执行详情
+   */
+  async getExecutionDetail(workflowId: string, executionId: number): Promise<WorkflowExecutionResponse> {
+    // 暂时返回模拟数据
+    console.warn('获取执行详情功能暂时不可用（使用本地存储模式）')
+    return {
+      id: executionId,
+      workflow: parseInt(workflowId) || 0,
+      input_data: {},
+      output_data: {},
+      status: 'completed',
+      node_status: {},
+      created_at: new Date().toISOString(),
+    }
+  },
+}
+
+/**
+ * 导出workflow数据为JSON文件（可选功能）
+ */
+export function exportWorkflowsToFile(): void {
+  try {
+    const workflows = readFromLocalStorage()
+    const blob = new Blob([JSON.stringify(workflows, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `workflows-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    console.log('已导出workflow数据到文件')
+  } catch (error) {
+    console.error('导出workflow数据失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 从JSON文件导入workflow数据（可选功能）
+ */
+export async function importWorkflowsFromFile(file: File): Promise<void> {
+  try {
+    const text = await file.text()
+    const workflows = JSON.parse(text)
+    if (!Array.isArray(workflows)) {
+      throw new Error('文件格式错误：必须是workflow数组')
+    }
+    saveLocalWorkflows(workflows)
+    console.log('已从文件导入', workflows.length, '个工作流')
+  } catch (error) {
+    console.error('导入workflow数据失败:', error)
+    throw error
+  }
+}
+
+
 /**
  * 将 VueFlow 的 GraphNode 转换为业务层的 Node
  */
@@ -130,15 +404,19 @@ export function graphNodeToNode(graphNode: GraphNode): Node {
 
 /**
  * 将业务层的 Node 转换为 VueFlow 的 GraphNode
+ * 
+ * 注意：GraphNode 的完整类型包含很多运行时计算的属性（如 dimensions, computedPosition 等），
+ * 这些属性会在 Vue Flow 渲染时自动计算，所以这里只需要提供基础属性即可。
+ * 使用类型断言 `as GraphNode` 来避免类型检查错误。
  */
 export function nodeToGraphNode(node: Node): GraphNode {
-  const graphNode: any = {
+  // 只提供基础属性，Vue Flow 会在运行时自动计算其他属性（如 dimensions 等）
+  return {
     id: node.id,
     type: node.type,
     position: node.position || { x: 0, y: 0 },
-    data: node.data,
-  }
-  return graphNode as GraphNode
+    data: node.data || node.config,
+  } as GraphNode
 }
 
 /**
@@ -155,16 +433,20 @@ export function graphEdgeToWorkflowEdge(graphEdge: GraphEdge): WorkflowEdge {
 
 /**
  * 将业务层的 WorkflowEdge 转换为 VueFlow 的 GraphEdge
+ * 
+ * 注意：GraphEdge 的完整类型包含很多运行时计算的属性（如 sourceNode, targetNode 等），
+ * 这些属性会在 Vue Flow 渲染时自动计算，所以这里只需要提供基础属性即可。
+ * 使用类型断言 `as GraphEdge` 来避免类型检查错误。
  */
 export function workflowEdgeToGraphEdge(edge: WorkflowEdge): GraphEdge {
-  const graphEdge: any = {
+  // 只提供基础属性，Vue Flow 会在运行时自动计算其他属性（如 sourceNode, targetNode 等）
+  return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
     type: 'default',
-    data: edge.condition ? { condition: edge.condition } : undefined,
-  }
-  return graphEdge as GraphEdge
+    data: edge.condition ? { condition: edge.condition } : {},
+  } as GraphEdge
 }
 
 

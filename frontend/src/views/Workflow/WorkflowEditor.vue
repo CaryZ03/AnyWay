@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, markRaw, computed, onMounted } from 'vue'
+import { ref, markRaw, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VueFlow, useVueFlow, Panel } from '@vue-flow/core'
+import type { GraphNode, GraphEdge } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { ControlButton, Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
-// import { initialEdges, initialNodes } from './initial-elements'
 import Icon from './components/Icon.vue'
-// import NodeEditorSidebar from './components/NodeEditorSidebar.vue'
+import NodeEditorSidebar from './components/NodeEditorSidebar.vue'
 import CustomNode from './components/CustomNode.vue'
 import { workflowApi } from '@/api'
-import { graphNodeToNode, graphEdgeToWorkflowEdge } from '@/api/workflow'
+import { graphNodeToNode, graphEdgeToWorkflowEdge, nodeToGraphNode, workflowEdgeToGraphEdge } from '@/api/workflow'
 import type { WorkflowForm } from '@/types/workflow'
 
 // , nodeToGraphNode, workflowEdgeToGraphEdge
@@ -37,23 +37,20 @@ const FLOW_STORAGE_KEY = 'workflow-editor-flow'
 const {
   onInit,
   onConnect,
-  addNodes,
   setViewport,
-  toObject,
-  fromObject,
-  dimensions,
-  nodes,
-  edges
+  toObject
 } = useVueFlow()
 
+const nodes = ref<GraphNode[]>([])
+const edges = ref<GraphEdge[]>([])
+
 onInit((vueFlowInstance) => {
-  // instance is the same as the return of `useVueFlow`
   vueFlowInstance.fitView()
 })
 
 // 节点类型选项（除了 start 和 end）
 const nodeTypeOptions = [
-  { type: 'llm', label: 'LLM节点', icon: '🤖' },
+  { type: 'llm', label: 'LLM', icon: '🤖' },
   { type: 'http', label: 'HTTP请求', icon: '🌐' },
   { type: 'knowledge', label: '知识库检索', icon: '🔍' },
   { type: 'intent', label: '意图识别', icon: '🎯' },
@@ -65,6 +62,8 @@ const showNodeTypeDialog = ref(false)
 
 // 选中的节点ID（用于显示侧边栏）
 const selectedNodeId = ref<string | null>(null)
+// 选中的边ID（用于显示侧边栏）
+const selectedEdgeId = ref<string | null>(null)
 
 const nodeTypes = {
   custom: markRaw(CustomNode),
@@ -77,73 +76,26 @@ const nodeTypes = {
   knowledge: markRaw(CustomNode),
 }
 
-// onInit 已经在上面定义了，这里不需要重复定义
-
 // 使用 onConnect hook 处理连接
 // 注意：onConnect 返回 false 可以阻止连接
 onConnect((connection) => {
   console.log('onConnect 被调用，connection:', connection)
   
-  // if (!connection) {
-  //   console.warn('连接对象为空')
-  //   return false
-  // }
+  if (connection) {
+    // 手动添加边到 edges
+    // 只提供基础属性，Vue Flow 会在运行时自动计算其他属性（如 sourceNode, targetNode 等）
+    const newEdge: GraphEdge = {
+      id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle || undefined,
+      targetHandle: connection.targetHandle || undefined,
+      type: 'default',
+      data: {},
+    } as GraphEdge
+    edges.value = [...edges.value, newEdge]
+  }
   
-  // // 验证连接的有效性
-  // if (!connection.source || !connection.target) {
-  //   console.warn('连接缺少源节点或目标节点:', connection)
-  //   return false
-  // }
-  
-  // // 防止自己连接自己（检查节点ID）
-  // if (connection.source === connection.target) {
-  //   console.warn('不能连接到自己，节点ID:', connection.source)
-  //   return false
-  // }
-  
-  // // 检查 sourceHandle 和 targetHandle 是否相同（防止同一个 handle 连接自己）
-  // if (connection.sourceHandle && connection.targetHandle && 
-  //     connection.source === connection.target && 
-  //     connection.sourceHandle === connection.targetHandle) {
-  //   console.warn('不能将同一个 handle 连接到自己:', connection)
-  //   return false
-  // }
-  
-  // // 验证节点是否存在
-  // const sourceNode = nodes.value.find(n => n.id === connection.source)
-  // const targetNode = nodes.value.find(n => n.id === connection.target)
-  
-  // if (!sourceNode || !targetNode) {
-  //   console.warn('源节点或目标节点不存在:', { 
-  //     sourceNode: sourceNode?.id, 
-  //     targetNode: targetNode?.id,
-  //     sourceId: connection.source,
-  //     targetId: connection.target
-  //   })
-  //   return false
-  // }
-  
-  // // 检查是否已存在相同的边（包括相同的 sourceHandle 和 targetHandle）
-  // const existingEdge = edges.value.find(
-  //   e => e.source === connection.source && 
-  //        e.target === connection.target &&
-  //        (e.sourceHandle === connection.sourceHandle || !connection.sourceHandle) &&
-  //        (e.targetHandle === connection.targetHandle || !connection.targetHandle)
-  // )
-  
-  // if (existingEdge) {
-  //   console.log('边已存在，阻止重复连接:', existingEdge)
-  //   return false
-  // }
-  
-  // console.log('连接验证通过，允许连接:', {
-  //   source: connection.source,
-  //   target: connection.target,
-  //   sourceHandle: connection.sourceHandle,
-  //   targetHandle: connection.targetHandle
-  // })
-  
-  // // 返回 true 或 undefined 允许连接
   return true
 })
 
@@ -151,20 +103,41 @@ onConnect((connection) => {
 function handleNodeClick({ node }: { node: any }) {
   // 显示侧边栏编辑节点
   selectedNodeId.value = node.id
+  selectedEdgeId.value = null // 取消边选择
   console.log('节点被点击:', node)
+}
+
+// 处理边点击
+function handleEdgeClick({ edge }: { edge: any }) {
+  // 显示侧边栏编辑边
+  selectedEdgeId.value = edge.id
+  selectedNodeId.value = null // 取消节点选择
+  console.log('边被点击:', edge)
 }
 
 // 点击画布空白处关闭侧边栏
 function handlePaneClick() {
   selectedNodeId.value = null
+  selectedEdgeId.value = null
 }
 
 function restoreFromStorage() {
   const savedData = localStorage.getItem(FLOW_STORAGE_KEY)
   if (savedData) {
     const flowData = JSON.parse(savedData)
-
-    fromObject(flowData)
+    
+    // 手动恢复 nodes 和 edges
+    if (flowData.nodes) {
+      nodes.value = flowData.nodes
+    }
+    if (flowData.edges) {
+      edges.value = flowData.edges
+    }
+    if (flowData.viewport) {
+      setViewport(flowData.viewport)
+    }
+    
+    console.log('已恢复数据，节点数:', nodes.value.length, '边数:', edges.value.length)
   }
 }
 
@@ -179,29 +152,27 @@ function closeNodeTypeDialog() {
 function createNodeByType(nodeType: string) {
   const newNodeId = `node-${Date.now()}`
   // 获取视口中心位置，如果 dimensions 不可用，使用默认值
-  const centerX = dimensions.value?.width ? dimensions.value.width / 2 : 400
-  const centerY = dimensions.value?.height ? dimensions.value.height / 2 : 300
+  const centerX = 400
+  const centerY = 300
 
   // 根据节点类型创建对应的默认数据
+  // 注意：不再设置output字段，因为每个节点的输出字段是固定的
   let nodeData: any = {
     name: nodeTypeOptions.find(opt => opt.type === nodeType)?.label || '新节点',
-    output: {}
   }
 
   // 根据不同类型设置不同的默认数据
+  // 注意：不再设置output字段，因为每个节点的输出字段是固定的
   switch (nodeType) {
     case 'llm':
       nodeData = {
-        name: 'LLM节点',
+        name: 'LLM',
         agent_uuid: 'agent-' + Date.now(),
         input: {},
         prompt: '请输入提示词',
+        system_prompt: '你是一个有用的AI助手',
         temperature: 0.7,
         max_tokens: 2000,
-        output: {
-          answer: 'str',
-          reasoning: 'str'
-        }
       }
       break
     case 'http':
@@ -211,11 +182,6 @@ function createNodeByType(nodeType: string) {
         method: 'GET',
         headers: {},
         body: {},
-        output: {
-          code: 'int',
-          msg: 'str',
-          data: 'obj'
-        }
       }
       break
     case 'knowledge':
@@ -225,10 +191,6 @@ function createNodeByType(nodeType: string) {
         query: '请输入查询内容',
         top_k: 5,
         similarity_threshold: 0.7,
-        output: {
-          documents: 'arr',
-          scores: 'arr'
-        }
       }
       break
     case 'intent':
@@ -238,10 +200,6 @@ function createNodeByType(nodeType: string) {
         intent_categories: ['查询', '投诉', '建议', '其他'],
         recognition_method: 'llm',
         agent_uuid: 'agent-' + Date.now(),
-        output: {
-          intent: 'str',
-          confidence: 'num'
-        }
       }
       break
     case 'string':
@@ -250,35 +208,39 @@ function createNodeByType(nodeType: string) {
         operation: 'concat',
         input_string: 'Hello',
         parameters: {},
-        output: {
-          result: 'str'
-        }
       }
       break
   }
 
   // 创建新节点对象
-  const newNode = {
+  // 只提供基础属性，Vue Flow 会在运行时自动计算其他属性（如 dimensions 等）
+  const newNode: GraphNode = {
     id: newNodeId,
     type: nodeType as any,
     position: {
       x: centerX + (Math.random() - 0.5) * 200,
       y: centerY + (Math.random() - 0.5) * 200
     },
-    data: nodeData
-  }
+    data: nodeData,
+  } as GraphNode
 
-  addNodes([newNode])
+  // 直接添加到 nodes.value，因为我们现在使用独立的 ref
+  nodes.value = [...nodes.value, newNode]
   closeNodeTypeDialog()
   console.log('已创建新节点:', newNodeId, '类型:', nodeType, '节点数据:', newNode)
   console.log('当前节点总数:', nodes.value.length)
 }
 
 function saveToStorage() {
-  const flowData = toObject()
+  // 手动保存 nodes 和 edges
+  const flowData = {
+    nodes: nodes.value || [],
+    edges: edges.value || [],
+    viewport: toObject().viewport || { x: 0, y: 0, zoom: 1 }
+  }
   console.log('保存数据:', flowData)
   localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(flowData))
-  console.log('已保存到 localStorage，节点数:', flowData.nodes?.length || 0, '边数:', flowData.edges?.length || 0)
+  console.log('已保存到 localStorage，节点数:', flowData.nodes.length, '边数:', flowData.edges.length)
 }
 
 function clearStorage() {
@@ -290,7 +252,12 @@ function clearStorage() {
  * toObject transforms your current graph data to an easily persist-able object
  */
 function logToObject() {
-  console.log(toObject())
+  const flowData = {
+    nodes: nodes.value || [],
+    edges: edges.value || [],
+    viewport: toObject().viewport || { x: 0, y: 0, zoom: 1 }
+  }
+  console.log(flowData)
 }
 
 /**
@@ -301,33 +268,73 @@ function resetTransform() {
 }
 
 
-// function closeSidebar() {
-//   selectedNodeId.value = null
-// }
+function closeSidebar() {
+  selectedNodeId.value = null
+  selectedEdgeId.value = null
+}
+
+// 处理节点更新
+function handleNodesUpdate(updatedNodes: GraphNode[]) {
+  nodes.value = updatedNodes
+}
+
+// 处理边更新
+function handleEdgesUpdate(updatedEdges: GraphEdge[]) {
+  edges.value = updatedEdges
+}
+
+// 处理节点删除
+function handleNodesDelete(nodesToDelete: GraphNode[]) {
+  const nodeIds = new Set(nodesToDelete.map(n => n.id))
+  // 删除节点时，同时删除相关的边
+  edges.value = edges.value.filter(e => 
+    !nodeIds.has(e.source) && !nodeIds.has(e.target)
+  )
+  // 如果删除的节点是当前选中的节点，关闭侧边栏
+  if (selectedNodeId.value && nodeIds.has(selectedNodeId.value)) {
+    selectedNodeId.value = null
+  }
+}
+
+// 处理边删除
+function handleEdgesDelete(edgesToDelete: GraphEdge[]) {
+  const edgeIds = new Set(edgesToDelete.map(e => e.id))
+  // 如果删除的边是当前选中的边，关闭侧边栏
+  if (selectedEdgeId.value && edgeIds.has(selectedEdgeId.value)) {
+    selectedEdgeId.value = null
+  }
+}
 
 // 加载工作流详情
 const loadWorkflow = async () => {
   if (!workflowId.value) return
   
   loading.value = true
-  // try {
-  //   workflow.value = await workflowApi.getDetail(workflowId.value as string)
-  //   console.log('workflow.value', workflow.value)
-  //   workflowName.value = workflow.value.name
+  try {
+    workflow.value = await workflowApi.getDetail(workflowId.value as string)
+    console.log('workflow.value', workflow.value)
+    workflowName.value = workflow.value.name
+
+    // 将业务层的 Node 和 WorkflowEdge 转换为 GraphNode 和 GraphEdge
+    if (workflow.value.nodes && Array.isArray(workflow.value.nodes)) {
+      nodes.value = workflow.value.nodes.map(node => nodeToGraphNode(node))
+    } else {
+      nodes.value = []
+    }
     
-  //   // 将工作流数据转换为 VueFlow 的 nodes  and edges
-  //   // 使用 nextTick 确保在 VueFlow 初始化后再设置数据
-  //   await nextTick()
-  //   if (workflow.value.nodes && workflow.value.edges) {
-  //     nodes.value = (workflow.value.nodes as any[]).map(nodeToGraphNode) as any[]
-  //     edges.value = (workflow.value.edges as any[]).map(workflowEdgeToGraphEdge) as any[]
-  //   }
-  // } catch (error) {
-  //   console.error('加载工作流详情失败:', error)
-  //   alert('加载工作流详情失败')
-  // } finally {
-  //   loading.value = false
-  // }
+    if (workflow.value.edges && Array.isArray(workflow.value.edges)) {
+      edges.value = workflow.value.edges.map(edge => workflowEdgeToGraphEdge(edge))
+    } else {
+      edges.value = []
+    }
+    
+    console.log('已加载工作流，节点数:', nodes.value.length, '边数:', edges.value.length)
+  } catch (error) {
+    console.error('加载工作流详情失败:', error)
+    alert('加载工作流详情失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 保存工作流（包括节点和边的数据）
@@ -336,8 +343,8 @@ const saveWorkflow = async () => {
   
   try {
     // 将 VueFlow 的 nodes 和 edges 转换为业务层格式
-    const workflowNodes = nodes.value.map(graphNodeToNode)
-    const workflowEdges = edges.value.map(graphEdgeToWorkflowEdge)
+    const workflowNodes = (nodes.value || []).map(graphNodeToNode)
+    const workflowEdges = (edges.value || []).map(graphEdgeToWorkflowEdge)
     
     const workflowForm: WorkflowForm = {
       id: workflow.value?.id,
@@ -390,19 +397,104 @@ const deleteWorkflow = async () => {
   }
 }
 
+// ========== 工作流执行状态管理 ==========
+
+// 执行状态相关
+const executionStatus = ref<'idle' | 'running' | 'completed' | 'failed'>('idle')
+const currentExecution = ref<any>(null)
+const executionResult = ref<any>(null)
+const showExecutionDialog = ref(false)
+const pollingInterval = ref<number | null>(null)
+
 // 执行工作流
 const executeWorkflow = async () => {
   if (!workflowId.value) return
   
   try {
+    executionStatus.value = 'running'
+    showExecutionDialog.value = true
+    executionResult.value = null
+    
+    // 启动执行
     const result = await workflowApi.execute(workflowId.value as string, {})
-    console.log('工作流执行结果:', result)
-    alert('工作流执行成功！查看控制台查看结果。')
+    currentExecution.value = result
+    
+    // 如果执行是异步的，开始轮询状态
+    if (result.status === 'pending' || result.status === 'running') {
+      startPolling(result.id)
+    } else {
+      // 如果立即完成或失败，直接显示结果
+      executionStatus.value = result.status === 'completed' ? 'completed' : 'failed'
+      executionResult.value = result
+    }
   } catch (error: any) {
     console.error('执行工作流失败:', error)
-    alert('执行失败: ' + (error?.message || '未知错误'))
+    executionStatus.value = 'failed'
+    executionResult.value = {
+      error_message: error?.message || '未知错误',
+      status: 'failed'
+    }
+    showExecutionDialog.value = true
   }
 }
+
+// 开始轮询执行状态
+function startPolling(executionId: number) {
+  if (!workflowId.value) return
+  
+  // 清除之前的轮询
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+  }
+  
+  // 设置新的轮询（每2秒查询一次）
+  pollingInterval.value = window.setInterval(async () => {
+    try {
+      const detail = await workflowApi.getExecutionDetail(workflowId.value as string, executionId)
+      currentExecution.value = detail
+      
+      // 更新状态
+      if (detail.status === 'completed' || detail.status === 'failed') {
+        executionStatus.value = detail.status === 'completed' ? 'completed' : 'failed'
+        executionResult.value = detail
+        stopPolling()
+      } else {
+        executionStatus.value = 'running'
+      }
+    } catch (error) {
+      console.error('查询执行状态失败:', error)
+      stopPolling()
+      executionStatus.value = 'failed'
+    }
+  }, 2000)
+}
+
+// 停止轮询
+function stopPolling() {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value)
+    pollingInterval.value = null
+  }
+}
+
+// 关闭执行结果对话框
+function closeExecutionDialog() {
+  showExecutionDialog.value = false
+  stopPolling()
+  // 延迟重置状态，让用户看到最终结果
+  setTimeout(() => {
+    if (executionStatus.value !== 'running') {
+      executionStatus.value = 'idle'
+      currentExecution.value = null
+      executionResult.value = null
+    }
+  }, 500)
+}
+
+// 组件卸载时清理轮询
+onUnmounted(() => {
+  stopPolling()
+})
 
 // 返回
 const handleBack = () => {
@@ -469,14 +561,21 @@ onMounted(() => {
     <!-- 内容区域 -->
     <div class="editor-content">
       <VueFlow 
+        v-model:nodes="nodes"
+        v-model:edges="edges"
         :nodeTypes="nodeTypes" 
         class="basic-flow"
         :default-viewport="{ zoom: 1.5 }" 
         :min-zoom="0.2" 
         :max-zoom="4" 
         @node-click="handleNodeClick"
+        @edge-click="handleEdgeClick"
         @pane-click="handlePaneClick"
-        :class="{ 'with-sidebar': selectedNodeId }"
+        @nodes-delete="handleNodesDelete"
+        @edges-delete="handleEdgesDelete"
+        :class="{ 'with-sidebar': selectedNodeId || selectedEdgeId }"
+        :delete-key-code="'Delete'"
+        :multi-selection-key-code="'Meta'"
       >
       <Background pattern-color="#aaa" :gap="16" />
 
@@ -528,12 +627,115 @@ onMounted(() => {
       </div>
     </VueFlow>
 
-    <!-- 节点编辑侧边栏 -->
-    <!-- <NodeEditorSidebar 
-      v-if="selectedNodeId" 
+    <!-- 节点/边编辑侧边栏 -->
+    <NodeEditorSidebar 
+      v-if="selectedNodeId || selectedEdgeId" 
       :nodeId="selectedNodeId" 
-      @close="closeSidebar" 
-    /> -->
+      :edgeId="selectedEdgeId"
+      :nodes="nodes"
+      :edges="edges"
+      @close="closeSidebar"
+      @update:nodes="handleNodesUpdate"
+      @update:edges="handleEdgesUpdate"
+    />
+
+    <!-- 工作流执行结果对话框 -->
+    <div v-if="showExecutionDialog" class="execution-dialog-overlay" @click="closeExecutionDialog">
+      <div class="execution-dialog" @click.stop>
+        <div class="execution-dialog-header">
+          <h3>工作流执行结果</h3>
+          <button class="close-btn" @click="closeExecutionDialog" title="关闭">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="execution-dialog-content">
+          <!-- 状态显示 -->
+          <div class="execution-status-section">
+            <div class="status-badge" :class="`status-${executionStatus}`">
+              <span class="status-icon">
+                <span v-if="executionStatus === 'running'">⏳</span>
+                <span v-else-if="executionStatus === 'completed'">✅</span>
+                <span v-else-if="executionStatus === 'failed'">❌</span>
+                <span v-else>⏸️</span>
+              </span>
+              <span class="status-text">
+                {{ executionStatus === 'running' ? '执行中...' : 
+                   executionStatus === 'completed' ? '执行成功' : 
+                   executionStatus === 'failed' ? '执行失败' : '等待中' }}
+              </span>
+            </div>
+            
+            <!-- 进度条（执行中时显示） -->
+            <div v-if="executionStatus === 'running'" class="progress-bar">
+              <div class="progress-bar-fill"></div>
+            </div>
+          </div>
+
+          <!-- 执行结果 -->
+          <div v-if="executionResult || currentExecution" class="execution-result-section">
+            <div class="result-section">
+              <h4>执行信息</h4>
+              <div class="result-info">
+                <div class="info-row">
+                  <span class="info-label">执行ID:</span>
+                  <span class="info-value">{{ (executionResult || currentExecution)?.id || '-' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">状态:</span>
+                  <span class="info-value status-text-inline" :class="`status-${(executionResult || currentExecution)?.status}`">
+                    {{ (executionResult || currentExecution)?.status || '-' }}
+                  </span>
+                </div>
+                <div v-if="(executionResult || currentExecution)?.started_at" class="info-row">
+                  <span class="info-label">开始时间:</span>
+                  <span class="info-value">{{ new Date((executionResult || currentExecution).started_at).toLocaleString() }}</span>
+                </div>
+                <div v-if="(executionResult || currentExecution)?.completed_at" class="info-row">
+                  <span class="info-label">完成时间:</span>
+                  <span class="info-value">{{ new Date((executionResult || currentExecution).completed_at).toLocaleString() }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 错误信息 -->
+            <div v-if="executionResult?.error_message" class="result-section error-section">
+              <h4>错误信息</h4>
+              <div class="error-message">{{ executionResult.error_message }}</div>
+            </div>
+
+            <!-- 输出数据 -->
+            <div v-if="executionResult?.output_data" class="result-section">
+              <h4>输出数据</h4>
+              <pre class="output-data">{{ JSON.stringify(executionResult.output_data, null, 2) }}</pre>
+            </div>
+
+            <!-- 节点状态 -->
+            <div v-if="(executionResult || currentExecution)?.node_status" class="result-section">
+              <h4>节点执行状态</h4>
+              <div class="node-status-list">
+                <div 
+                  v-for="(status, nodeId) in (executionResult || currentExecution).node_status" 
+                  :key="nodeId"
+                  class="node-status-item"
+                >
+                  <span class="node-status-id">{{ nodeId }}</span>
+                  <span class="node-status-value" :class="`status-${status}`">
+                    {{ status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="execution-dialog-footer">
+          <button class="btn-primary" @click="closeExecutionDialog">关闭</button>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
@@ -684,8 +886,260 @@ onMounted(() => {
 }
 
 .basic-flow.with-sidebar {
-  margin-right: 400px;
+  margin-right: 320px;
   transition: margin-right 0.3s ease;
+}
+
+/* ========== 工作流执行结果对话框样式 ========== */
+.execution-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.execution-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+.execution-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e1e8ed;
+  flex-shrink: 0;
+}
+
+.execution-dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #656d76;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f6f8fa;
+  color: #1a1a1a;
+}
+
+.execution-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.execution-status-section {
+  margin-bottom: 24px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.status-running {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1976d2;
+}
+
+.status-completed {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #388e3c;
+}
+
+.status-failed {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  color: #d32f2f;
+}
+
+.status-idle {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.status-icon {
+  font-size: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e1e8ed;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0969da 0%, #0860ca 100%);
+  animation: progress 1.5s ease-in-out infinite;
+  width: 60%;
+}
+
+@keyframes progress {
+  0%, 100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(300%);
+  }
+}
+
+.execution-result-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.result-section {
+  padding: 16px;
+  background: #f6f8fa;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+}
+
+.result-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #656d76;
+  min-width: 80px;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+.status-text-inline {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.error-section {
+  background: #fff5f5;
+  border-color: #ffcdd2;
+}
+
+.error-message {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  color: #d32f2f;
+  font-size: 13px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.output-data {
+  margin: 0;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #1a1a1a;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.node-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.node-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+}
+
+.node-status-id {
+  font-size: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #656d76;
+}
+
+.node-status-value {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.execution-dialog-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e1e8ed;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .vue-flow__minimap {
