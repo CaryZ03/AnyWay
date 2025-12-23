@@ -26,6 +26,9 @@ VALID_SPEC = {
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 class AgentPluginChatTests(APITestCase):
     def setUp(self):
+        Conversation.objects.all().delete()
+        Agent.objects.all().delete()
+        Plugin.objects.all().delete()
         self.plugin = Plugin.objects.create(
             name='P1', description='d', openapi_spec=VALID_SPEC,
             base_url='https://api.example.com', auth_config={}, status='enabled'

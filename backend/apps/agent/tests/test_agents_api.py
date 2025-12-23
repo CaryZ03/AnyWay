@@ -8,10 +8,11 @@ from apps.agent.models import Agent, Conversation
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 class AgentEndpointTests(APITestCase):
-    @classmethod
-    def setUpTestData(cls):
-        """Prepare a base agent for most tests."""
-        cls.agent = Agent.objects.create(
+    def setUp(self):
+        # isolate between tests
+        Conversation.objects.all().delete()
+        Agent.objects.all().delete()
+        self.agent = Agent.objects.create(
             name='Agent A',
             description='desc',
             system_prompt='You are helpful.',

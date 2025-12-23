@@ -71,3 +71,31 @@ def test_workflow_complex_flow_executes_with_mocks():
     assert body.get("data", {}).get("node_status") is not None
     assert body.get("success") is True
 
+
+@override_settings(ALLOWED_HOSTS=["testserver", "localhost", "127.0.0.1"])
+def test_workflow_complex_flow_http_error_returns_500():
+    client = APIClient()
+    create_resp = client.post(
+        "/api/v1/workflows/",
+        {"name": "wf", "definition": COMPLEX_DEF, "status": "draft"},
+        format="json",
+    )
+    assert create_resp.status_code == 201
+    wf_id = create_resp.json()["data"]["id"]
+
+    class DummyLLM:
+        def chat(self, *args, **kwargs):
+            return json.dumps({"intent_id": "a", "intent_name": "A", "reason": "match"})
+
+    def http_fail(**kwargs):
+        raise Exception("http boom")
+
+    with patch("apps.workflow.services.get_llm_service", lambda provider: DummyLLM()), \
+         patch("apps.workflow.services.requests.request", side_effect=http_fail):
+        resp = client.post(
+            f"/api/v1/workflows/{wf_id}/execute/",
+            {"input_data": {"user_input": "hi"}},
+            format="json",
+        )
+    # 500 or 5xx expected on node failure
+    assert resp.status_code in (500, 502, 503)

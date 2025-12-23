@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: aiagent-backend-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: aiagent
+      MYSQL_USER: aiagent
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-aiagent_password}
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aiagent-network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: aiagent-backend-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aiagent-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  aiagent-network:
+    driver: bridge

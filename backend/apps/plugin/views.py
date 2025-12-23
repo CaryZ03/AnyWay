@@ -4,10 +4,12 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 import logging
 
 from .models import Plugin
 from .serializers import PluginSerializer, PluginListSerializer, PluginCreateUpdateSerializer
+from .services import PluginService
 from utils.response import ApiResponse
 
 logger = logging.getLogger(__name__)
@@ -132,3 +134,29 @@ class PluginViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(plugin)
         return ApiResponse.success(data=serializer.data, message='插件已禁用')
+
+    @swagger_auto_schema(
+        operation_summary='调用插件操作',
+        operation_description='根据 operation_id 调用指定插件的 OpenAPI 操作',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['operation_id'],
+            properties={
+                'operation_id': openapi.Schema(type=openapi.TYPE_STRING),
+                'params': openapi.Schema(type=openapi.TYPE_OBJECT),
+            },
+        ),
+        responses={200: '调用结果'}
+    )
+    @action(detail=True, methods=['post'])
+    def call(self, request, pk=None):
+        """调用插件操作"""
+        plugin = self.get_object()
+        operation_id = request.data.get('operation_id')
+        params = request.data.get('params', {})
+        if not operation_id:
+            return ApiResponse.error(message='operation_id 必填')
+        result = PluginService.call_plugin_operation(plugin, operation_id, params)
+        if result.get('success') is False:
+            return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+        return ApiResponse.success(data=result, message='插件调用成功')

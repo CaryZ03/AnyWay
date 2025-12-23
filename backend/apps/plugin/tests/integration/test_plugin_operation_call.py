@@ -26,7 +26,6 @@ VALID_SPEC = {
 
 
 @override_settings(ALLOWED_HOSTS=["testserver", "localhost", "127.0.0.1"])
-@pytest.mark.skip(reason="Plugin operation call endpoint is not exposed in PluginViewSet")
 def test_plugin_operation_call_integration():
     client = APIClient()
 

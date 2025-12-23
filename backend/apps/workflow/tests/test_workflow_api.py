@@ -67,7 +67,7 @@ class WorkflowApiTests(APITestCase):
         assert all(item['id'] != self.workflow.id for item in list_resp.json().get('data'))
 
     def test_execute_success(self):
-        def fake_execute(execution):
+        def fake_execute(workflow, input_data, execution):
             execution.status = 'completed'
             execution.output_data = {'answer': 'ok'}
             execution.save(update_fields=['status', 'output_data'])
@@ -96,4 +96,3 @@ class WorkflowApiTests(APITestCase):
         body = resp.json()
         assert body.get('success') is False
         assert '失败' in body.get('message', '')
-
