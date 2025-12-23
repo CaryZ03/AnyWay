@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.http import JsonResponse
 
 # Swagger API Documentation
 schema_view = get_schema_view(
@@ -40,7 +41,7 @@ urlpatterns = [
     path('api/v1/llm/', include('apps.llm.urls')),
     
     # Health Check
-    path('health/', lambda request: __import__('django.http').JsonResponse({'status': 'ok'})),
+    path('health/', lambda request: JsonResponse({'status': 'ok'})),
 ]
 
 # Serve media files in development

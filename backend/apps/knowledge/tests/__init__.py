@@ -1,0 +1,3 @@
+"""
+Knowledge app tests package.
+"""

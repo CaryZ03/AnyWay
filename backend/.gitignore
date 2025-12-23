@@ -34,6 +34,8 @@ db.sqlite3-journal
 /media
 /staticfiles
 /static
+# Django migrations
+/apps/*/migrations/
 
 # Environment variables
 .env
@@ -69,3 +71,4 @@ logs/
 *.tmp
 *.bak
 *.cache
+/docker-compose.yml

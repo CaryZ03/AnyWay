@@ -1,0 +1,3 @@
+"""
+Plugin app tests package.
+"""
