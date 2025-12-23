@@ -88,6 +88,8 @@ export const pluginApi = {
    */
   create: async (form: PluginForm): Promise<Plugin> => {
     const requestData = transformPluginRequest(form)
+    console.log('[API] 创建插件请求数据:', JSON.stringify(requestData, null, 2))
+    console.log('[API] openapi_spec:', JSON.stringify(requestData.openapi_spec, null, 2))
     const data = await request.post<BackendPlugin>('/plugins/', requestData)
     return transformPlugin(data)
   },

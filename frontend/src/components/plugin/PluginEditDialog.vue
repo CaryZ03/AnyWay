@@ -176,6 +176,33 @@ watch(() => formData.value.openapiSpec, (spec) => {
 const updateFromJson = () => {
   try {
     const parsed = JSON.parse(jsonEditor.value)
+    
+    // 验证必需字段
+    if (!parsed.openapi) {
+      jsonError.value = 'JSON缺少必需字段: openapi'
+      return
+    }
+    if (!parsed.info || typeof parsed.info !== 'object') {
+      jsonError.value = 'JSON缺少必需字段: info'
+      return
+    }
+    if (!parsed.info.title) {
+      jsonError.value = 'JSON中info.title字段不能为空'
+      return
+    }
+    if (!parsed.servers || !Array.isArray(parsed.servers) || parsed.servers.length === 0) {
+      jsonError.value = 'JSON中servers字段必须是非空数组'
+      return
+    }
+    if (!parsed.servers[0] || !parsed.servers[0].url) {
+      jsonError.value = 'JSON中servers[0].url字段不能为空'
+      return
+    }
+    if (!parsed.paths || typeof parsed.paths !== 'object') {
+      jsonError.value = 'JSON缺少必需字段: paths'
+      return
+    }
+    
     formData.value.openapiSpec = parsed as OpenAPISpec
     
     // 更新基本信息
@@ -221,6 +248,50 @@ const handleSave = async () => {
   // 先同步 JSON 编辑器
   updateFromJson()
   
+  // 如果 JSON 解析失败，阻止保存
+  if (jsonError.value) {
+    error.value = jsonError.value
+    return
+  }
+  
+  // 验证 openapiSpec 完整性
+  const spec = formData.value.openapiSpec
+  if (!spec) {
+    error.value = 'OpenAPI规范数据为空，请检查JSON编辑器'
+    return
+  }
+  
+  if (!spec.openapi) {
+    error.value = 'OpenAPI规范缺少 openapi 字段，请在JSON中添加 "openapi": "3.0.0"'
+    return
+  }
+  
+  if (!spec.info || typeof spec.info !== 'object') {
+    error.value = 'OpenAPI规范缺少 info 字段，请在JSON中添加 info 对象'
+    return
+  }
+  
+  if (!spec.info.title) {
+    error.value = 'OpenAPI规范中 info.title 字段不能为空，请填写插件名称'
+    return
+  }
+  
+  if (!spec.servers || !Array.isArray(spec.servers) || spec.servers.length === 0) {
+    error.value = 'OpenAPI规范中 servers 字段必须是非空数组，请添加服务器地址'
+    return
+  }
+  
+  if (!spec.servers[0] || !spec.servers[0].url) {
+    error.value = 'OpenAPI规范中 servers[0].url 字段不能为空，请填写服务器地址'
+    return
+  }
+  
+  if (!spec.paths || typeof spec.paths !== 'object') {
+    error.value = 'OpenAPI规范缺少 paths 字段，请在JSON中添加 paths 对象（可以为空对象 {}）'
+    return
+  }
+  
+  // 验证表单
   if (!validate()) {
     return
   }
@@ -229,6 +300,9 @@ const handleSave = async () => {
   error.value = ''
 
   try {
+    console.log('准备保存插件，完整数据:', JSON.stringify(formData.value, null, 2))
+    console.log('openapiSpec:', JSON.stringify(formData.value.openapiSpec, null, 2))
+    
     if (props.plugin?.id) {
       // 更新
       await pluginApi.update(props.plugin.id, formData.value)
@@ -241,7 +315,10 @@ const handleSave = async () => {
     dialogVisible.value = false
   } catch (err: any) {
     console.error('保存插件失败:', err)
-    error.value = err?.response?.data?.message || err?.message || '保存失败'
+    // request.ts 的响应拦截器已经将错误转换为 Error 对象，message 字段包含错误信息
+    // 兼容处理：支持直接 Error 对象和 axios 错误响应
+    const errorMessage = err?.message || err?.response?.data?.message || err?.response?.data?.detail || '保存失败'
+    error.value = errorMessage
   } finally {
     loading.value = false
   }

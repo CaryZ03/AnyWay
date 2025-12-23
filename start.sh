@@ -85,13 +85,31 @@ check_ports() {
     fi
 }
 
-# 构建前端镜像
-build_frontend() {
-    log_info "构建前端镜像（确保代码更新生效）..."
+# 构建镜像
+build_images() {
+    log_info "构建镜像（确保代码更新生效）..."
     
     cd "$(dirname "$0")"
     
+    # 询问是否重新构建镜像
+    echo -n "是否重新构建镜像以应用代码更改? (y/n，默认n): "
+    read -r rebuild_images
+    if [ "$rebuild_images" != "y" ] && [ "$rebuild_images" != "Y" ]; then
+        log_info "跳过镜像构建，使用现有镜像"
+        return 0
+    fi
+    
+    # 重新构建后端镜像以确保代码更新生效
+    log_info "构建后端镜像..."
+    if docker compose -f docker-compose.prod.yml build backend celery-worker; then
+        log_success "后端镜像构建成功"
+    else
+        log_warning "后端镜像构建失败，将尝试使用现有镜像"
+        return 1
+    fi
+    
     # 重新构建前端镜像以确保代码更新生效
+    log_info "构建前端镜像..."
     if docker compose -f docker-compose.prod.yml build frontend; then
         log_success "前端镜像构建成功"
     else
@@ -201,7 +219,8 @@ show_access_info() {
     echo -e "  查看日志:    docker compose -f docker-compose.prod.yml logs -f"
     echo -e "  查看状态:    docker compose -f docker-compose.prod.yml ps"
     echo -e "  停止服务:    docker compose -f docker-compose.prod.yml stop"
-    echo -e "  重启服务:    docker compose -f docker-compose.prod.yml restart"
+    echo -e "  重启服务:    docker compose -f docker-compose.prod.yml restart backend celery-worker"
+    echo -e "  重建后端:    docker compose -f docker-compose.prod.yml build backend celery-worker && docker compose -f docker-compose.prod.yml up -d backend celery-worker"
     echo ""
     echo -e "${YELLOW}注意事项:${NC}"
     echo -e "  1. 首次访问可能需要等待1-2分钟"
@@ -218,7 +237,7 @@ main() {
     check_docker
     check_config
     check_ports
-    build_frontend
+    build_images
     start_services
     wait_for_services
     

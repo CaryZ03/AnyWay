@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { pluginApi, agentApi, knowledgeApi } from '@/api'
 import type { Plugin, Operation, PathItem } from '@/types/plugin'
 import type { ModelConfig } from '@/types/agent'
@@ -19,6 +20,8 @@ const emit = defineEmits<{
   (e: 'update:pluginIds', value: number[]): void
   (e: 'update:modelConfig', value: ModelConfig): void
 }>()
+
+const router = useRouter()
 
 // 从 API 获取的数据
 const availablePlugins = ref<Plugin[]>([])
@@ -313,6 +316,7 @@ onMounted(() => {
   loadData()
   initModelConfig()
 })
+
 </script>
 
 <template>
@@ -522,6 +526,24 @@ onMounted(() => {
             />
             <span class="config-value">{{ presencePenalty.toFixed(1) }}</span>
           </div>
+        </div>
+      </div>
+
+      <!-- 工作流配置入口 -->
+      <div class="config-section">
+        <label class="section-label">工作流</label>
+        <div class="workflow-row">
+          <div class="workflow-info">
+            <div class="workflow-title">
+              {{ workflowId ? `已绑定工作流 #${workflowId}` : '尚未绑定工作流' }}
+            </div>
+            <div class="workflow-desc">
+              使用工作流可以通过「开始 → 意图识别 → 大模型 → 结束」等节点，编排更复杂的回复流程。
+            </div>
+          </div>
+          <button class="workflow-btn" @click="router.push('/workflow/1/editor')">
+            {{ workflowId ? '编辑工作流' : '创建并编辑工作流' }}
+          </button>
         </div>
       </div>
     </template>
@@ -906,5 +928,52 @@ onMounted(() => {
 .knowledge-base-meta {
   font-size: 12px;
   color: #9ca3af;
+}
+
+.workflow-row {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workflow-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workflow-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.workflow-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.workflow-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.workflow-btn:hover {
+  background: #1d4ed8;
 }
 </style>

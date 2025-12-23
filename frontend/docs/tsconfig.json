@@ -1,0 +1,12 @@
+{
+  "extends": "@tooling/tsconfig/base",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "types": [
+      "vite/client",
+      "@types/node",
+      "unplugin-icons/types/vue"
+    ]
+  }
+}

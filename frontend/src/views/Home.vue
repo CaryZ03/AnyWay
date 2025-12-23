@@ -1,25 +1,41 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { agentApi, pluginApi } from '@/api'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { agentApi, pluginApi, workflowApi, knowledgeApi } from '@/api'
 import type { Agent } from '@/types/agent'
 import type { Plugin } from '@/types/plugin'
+import type { WorkflowForm } from '@/types/workflow'
+import type { KnowledgeBase } from '@/types/knowledge-base'
 import Sidebar, { type SidebarItem } from '@/components/common/Sidebar.vue'
 import ContentList from '@/components/common/ContentList.vue'
 import AgentCard from '@/components/agent/AgentCard.vue'
 import PluginCard from '@/components/plugin/PluginCard.vue'
+import WorkflowCard from '@/components/workflow/WorkflowCard.vue'
+import KnowledgeCard from '@/components/knowledge/KnowledgeCard.vue'
+import KnowledgeDialog from '@/components/knowledge/KnowledgeDialog.vue'
 import AgentEditorDialog from '@/components/agent/AgentEditorDialog.vue'
 import CreateAgentDialog from '@/components/agent/AgentCreateDialog.vue'
 import PluginEditDialog from '@/components/plugin/PluginEditDialog.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 // 侧边栏状态
 const activeSidebarItem = ref<SidebarItem>('agent')
 
+// 调试：监听侧边栏切换
+watch(activeSidebarItem, (newValue) => {
+  console.log('侧边栏切换到:', newValue)
+  if (newValue === 'workflow') {
+    console.log('切换到工作流，准备加载数据...')
+  }
+})
+
 // 数据状态
 const agents = ref<Agent[]>([])
 const plugins = ref<Plugin[]>([])
+const workflows = ref<WorkflowForm[]>([])
+const knowledgeBases = ref<KnowledgeBase[]>([])
 const loading = ref(false)
 const searchQuery = ref('')
 const selectedStatus = ref('all')
@@ -28,6 +44,8 @@ const showEditDialog = ref(false)
 const editingAgent = ref<Agent | undefined>()
 const showPluginDialog = ref(false)
 const editingPlugin = ref<Plugin | null>(null)
+const showKnowledgeDialog = ref(false)
+const editingKB = ref<KnowledgeBase | null>(null)
 
 // 过滤后的列表（仅智能体）
 const filteredAgents = computed(() => {
@@ -66,12 +84,46 @@ const filteredPlugins = computed(() => {
   return result
 })
 
+// 过滤后的工作流列表
+const filteredWorkflows = computed(() => {
+  let result = workflows.value
+
+  // 按搜索关键词过滤
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter((item) =>
+      item.name.toLowerCase().includes(query) ||
+      (item.description && item.description.toLowerCase().includes(query))
+    )
+  }
+
+  return result
+})
+
+// 过滤后的知识库列表
+const filteredKnowledgeBases = computed(() => {
+  let result = knowledgeBases.value
+
+  // 按搜索关键词过滤
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter((item) =>
+      item.name.toLowerCase().includes(query) ||
+      (item.description && item.description.toLowerCase().includes(query))
+    )
+  }
+
+  return result
+})
+
 
 // 获取标题和按钮文字
 const pageTitle = computed(() => {
   const titles: Record<SidebarItem, string> = {
     agent: '智能体',
-    plugin: '插件'
+    plugin: '插件',
+    knowledge: '知识库',
+    workflow: '工作流'
   }
   return titles[activeSidebarItem.value]
 })
@@ -79,7 +131,9 @@ const pageTitle = computed(() => {
 const createButtonText = computed(() => {
   const texts: Record<SidebarItem, string> = {
     agent: '新建智能体',
-    plugin: '新建插件'
+    plugin: '新建插件',
+    knowledge: '新建知识库',
+    workflow: '新建工作流'
   }
   return texts[activeSidebarItem.value]
 })
@@ -105,6 +159,35 @@ const fetchPlugins = async () => {
   }
 }
 
+// 获取工作流列表
+const fetchWorkflows = async () => {
+  try {
+    const data = await workflowApi.getList()
+    console.log('获取到的工作流数据:', data)
+    workflows.value = data || []
+    console.log('工作流列表已更新，数量:', workflows.value.length)
+  } catch (error) {
+    console.error('获取工作流列表失败:', error)
+    alert('获取工作流列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    workflows.value = []
+  }
+}
+
+// 获取知识库列表
+const fetchKnowledgeBases = async () => {
+  try {
+    console.log('[知识库] 开始获取知识库列表...')
+    const data = await knowledgeApi.getList()
+    console.log('[知识库] 获取到的数据:', data)
+    knowledgeBases.value = Array.isArray(data) ? data : []
+    console.log('[知识库] 列表已更新，数量:', knowledgeBases.value.length)
+  } catch (error) {
+    console.error('[知识库] 获取知识库列表失败:', error)
+    alert('获取知识库列表失败: ' + (error instanceof Error ? error.message : String(error)))
+    knowledgeBases.value = []
+  }
+}
+
 // 加载当前项的数据
 const fetchCurrentData = async () => {
   loading.value = true
@@ -116,7 +199,15 @@ const fetchCurrentData = async () => {
       case 'plugin':
         await fetchPlugins()
         break
+      case 'workflow':
+        await fetchWorkflows()
+        break
+      case 'knowledge':
+        await fetchKnowledgeBases()
+        break
     }
+  } catch (error) {
+    console.error('加载数据失败:', error)
   } finally {
     loading.value = false
   }
@@ -124,19 +215,48 @@ const fetchCurrentData = async () => {
 
 // 侧边栏切换
 const handleSidebarChange = (item: SidebarItem) => {
-  activeSidebarItem.value = item
-  selectedStatus.value = 'all'
-  searchQuery.value = ''
-  fetchCurrentData()
+  console.log('侧边栏切换:', item)
+
+  // 如果是智能体、插件、工作流或知识库，确保在首页
+  if (item === 'agent' || item === 'plugin' || item === 'workflow' || item === 'knowledge') {
+    // 如果当前不在首页，先跳转到首页
+    if (route.path !== '/') {
+      router.push('/')
+      // 等待路由切换完成后再更新状态
+      nextTick(() => {
+        activeSidebarItem.value = item
+        selectedStatus.value = 'all'
+        searchQuery.value = ''
+        console.log('路由切换后，准备加载数据，当前项:', item)
+        fetchCurrentData()
+      })
+      return
+    }
+    
+    // 如果已经在首页，直接切换
+    activeSidebarItem.value = item
+    selectedStatus.value = 'all'
+    searchQuery.value = ''
+    console.log('切换侧边栏到:', item, '准备加载数据')
+    fetchCurrentData()
+  }
 }
 
 // 打开创建对话框
 const openCreateDialog = () => {
   if (activeSidebarItem.value === 'plugin') {
     openCreatePluginDialog()
-  } else {
-    showCreateDialog.value = true
+    return
   }
+  if (activeSidebarItem.value === 'workflow') {
+    handleCreateWorkflow()
+    return
+  }
+  if (activeSidebarItem.value === 'knowledge') {
+    handleCreateKnowledgeBase()
+    return
+  }
+  showCreateDialog.value = true
 }
 
 // 关闭创建对话框
@@ -178,20 +298,20 @@ const handleEditSave = async (data: Partial<Agent>) => {
         description: data.description,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
-        modelConfig: typeof data.modelConfig === 'string' 
-          ? JSON.parse(data.modelConfig) 
+        modelConfig: typeof data.modelConfig === 'string'
+          ? JSON.parse(data.modelConfig)
           : data.modelConfig,
         workflowId: data.workflowId,
         knowledgeBaseIds: Array.isArray(data.knowledgeBaseIds)
           ? data.knowledgeBaseIds
           : typeof data.knowledgeBaseIds === 'string'
-          ? JSON.parse(data.knowledgeBaseIds)
-          : [],
+            ? JSON.parse(data.knowledgeBaseIds)
+            : [],
         pluginIds: Array.isArray(data.pluginIds)
           ? data.pluginIds
           : typeof data.pluginIds === 'string'
-          ? JSON.parse(data.pluginIds)
-          : [],
+            ? JSON.parse(data.pluginIds)
+            : [],
         status: data.status
       }
       await agentApi.update(editingAgent.value.id, formData)
@@ -206,7 +326,7 @@ const handleEditSave = async (data: Partial<Agent>) => {
 // 删除智能体
 const handleAgentDelete = async (agent: Agent) => {
   if (!agent.id) return
-  
+
   try {
     await agentApi.delete(agent.id)
     await fetchCurrentData()
@@ -271,7 +391,7 @@ const handleImportPlugin = () => {
     try {
       const text = await file.text()
       const jsonData = JSON.parse(text)
-      
+
       // 验证是否为有效的 OpenAPI 规范
       if (!jsonData.openapi || !jsonData.info || !jsonData.paths) {
         alert('无效的 OpenAPI 规范文件，请确保文件包含 openapi、info 和 paths 字段')
@@ -304,7 +424,7 @@ const handleImportPlugin = () => {
 // 删除插件
 const handlePluginDelete = async (plugin: Plugin) => {
   if (!plugin.id) return
-  
+
   try {
     await pluginApi.delete(plugin.id)
     await fetchCurrentData()
@@ -317,7 +437,7 @@ const handlePluginDelete = async (plugin: Plugin) => {
 // 切换插件状态
 const handlePluginToggleStatus = async (plugin: Plugin) => {
   if (!plugin.id) return
-  
+
   try {
     if (plugin.status === 'enabled') {
       await pluginApi.disable(plugin.id)
@@ -329,6 +449,121 @@ const handlePluginToggleStatus = async (plugin: Plugin) => {
     console.error('切换插件状态失败:', error)
     alert('切换状态失败: ' + (error?.message || '未知错误'))
   }
+}
+
+// 创建工作流
+const handleCreateWorkflow = async () => {
+  try {
+    const name = prompt('请输入工作流名称:')
+    if (!name || !name.trim()) return
+
+    const description = prompt('请输入工作流描述（可选）:') || ''
+
+    const newWorkflow: WorkflowForm = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      nodes: [{
+        id: 'node-start',
+        type: 'start',
+        data: {
+          name: '开始',
+          input_text: '用户输入'
+        },
+        position: { x: 250, y: 0 }
+      },
+      {
+        id: 'node-end',
+        type: 'end',
+        data: {
+          name: '结束',
+          output_text: '最终结果',
+        },
+        position: { x: 300, y: 400 }
+      }],
+      edges: [],
+      config: {},
+    }
+
+    const created = await workflowApi.create(newWorkflow)
+    await fetchCurrentData()
+    console.log('created', created)
+    // 创建成功后跳转到编辑页面
+    // if (created.id) {
+    //   router.push(`/workflow/${created.id}/edit`)
+    // }
+  } catch (error: any) {
+    console.error('创建工作流失败:', error)
+    alert('创建失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 点击工作流卡片 - 跳转到编辑页面
+const handleWorkflowClick = (workflow: WorkflowForm) => {
+  if (workflow.id) {
+    router.push(`/workflow/${workflow.id}/edit`)
+  }
+}
+
+// 编辑工作流（直接跳转到编辑页面）
+const handleWorkflowEdit = (workflow: WorkflowForm) => {
+  handleWorkflowClick(workflow)
+}
+
+// 删除工作流
+const handleWorkflowDelete = async (workflow: WorkflowForm) => {
+  if (!workflow.id) return
+
+  try {
+    await workflowApi.delete(String(workflow.id))
+    await fetchCurrentData()
+  } catch (error: any) {
+    console.error('删除工作流失败:', error)
+    alert('删除失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 创建知识库
+const handleCreateKnowledgeBase = async () => {
+  editingKB.value = null
+  showKnowledgeDialog.value = true
+}
+
+// 点击知识库卡片 - 跳转到详情页面
+const handleKnowledgeBaseClick = (kb: KnowledgeBase) => {
+  if (kb.id) {
+    router.push(`/knowledge/${kb.id}`)
+  }
+}
+
+// 编辑知识库
+const handleKnowledgeBaseEdit = (kb: KnowledgeBase) => {
+  editingKB.value = kb
+  showKnowledgeDialog.value = true
+}
+
+// 删除知识库
+const handleKnowledgeBaseDelete = async (kb: KnowledgeBase) => {
+  if (!kb.id) return
+
+  try {
+    await knowledgeApi.delete(kb.id)
+    await fetchCurrentData()
+  } catch (error: any) {
+    console.error('删除知识库失败:', error)
+    alert('删除失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+// 关闭知识库对话框
+const closeKnowledgeDialog = () => {
+  showKnowledgeDialog.value = false
+  editingKB.value = null
+}
+
+// 知识库保存成功回调
+const handleKnowledgeBaseSaved = () => {
+  closeKnowledgeDialog()
+  fetchCurrentData()
 }
 
 
@@ -344,15 +579,25 @@ onMounted(async () => {
     <header class="title-header">
       <div class="title-content">
         <h1 class="title">AnyWay</h1>
-        <span class="subtitle">{{ activeSidebarItem === 'agent' ? filteredAgents.length : filteredPlugins.length }} 个项目</span>
+        <span class="subtitle">
+          {{ activeSidebarItem === 'agent'
+            ? filteredAgents.length
+            : activeSidebarItem === 'plugin'
+              ? filteredPlugins.length
+              : activeSidebarItem === 'workflow'
+                ? filteredWorkflows.length
+                : activeSidebarItem === 'knowledge'
+                  ? filteredKnowledgeBases.length
+                  : 0 }} 个项目
+        </span>
       </div>
     </header>
-    
+
     <!-- 下方内容区域：侧边栏 + 主内容 -->
     <div class="content-wrapper">
       <!-- 左侧边栏 -->
       <Sidebar :active-item="activeSidebarItem" @change="handleSidebarChange" />
-      
+
       <!-- 主内容区 -->
       <div class="main-content">
 
@@ -360,30 +605,23 @@ onMounted(async () => {
         <div class="action-bar">
           <div class="search-box">
             <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M7.333 12.667A5.333 5.333 0 1 0 7.333 2a5.333 5.333 0 0 0 0 10.667ZM14 14l-2.9-2.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7.333 12.667A5.333 5.333 0 1 0 7.333 2a5.333 5.333 0 0 0 0 10.667ZM14 14l-2.9-2.9"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="`搜索${pageTitle}...`"
-              class="search-input"
-            />
+            <input v-model="searchQuery" type="text" :placeholder="`搜索${pageTitle}...`" class="search-input" />
           </div>
           <div class="action-buttons">
-            <button 
-              v-if="activeSidebarItem === 'plugin'"
-              class="btn-secondary"
-              @click="handleImportPlugin"
-              title="导入插件"
-            >
+            <button v-if="activeSidebarItem === 'plugin'" class="btn-secondary" @click="handleImportPlugin"
+              title="导入插件">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2v8M5 7l3-3 3 3M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 2v8M5 7l3-3 3 3M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
               导入
             </button>
             <button class="btn-primary" @click="openCreateDialog">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
               </svg>
               {{ createButtonText }}
             </button>
@@ -393,32 +631,34 @@ onMounted(async () => {
         <!-- 筛选区域（仅智能体显示） -->
         <div v-if="activeSidebarItem === 'agent'" class="filter-section">
           <div class="filter-tabs">
-            <button
-              v-for="option in [
-                { value: 'all', label: '全部' },
-                { value: 'draft', label: '草稿' },
-                { value: 'published', label: '已发布' }
-              ]"
-              :key="option.value"
-              class="filter-tab"
-              :class="{ active: selectedStatus === option.value }"
-              @click="selectedStatus = option.value"
-            >
+            <button v-for="option in [
+              { value: 'all', label: '全部' },
+              { value: 'draft', label: '草稿' },
+              { value: 'published', label: '已发布' }
+            ]" :key="option.value" class="filter-tab" :class="{ active: selectedStatus === option.value }"
+              @click="selectedStatus = option.value">
               {{ option.label }}
             </button>
           </div>
         </div>
 
         <!-- 内容列表 -->
-        <ContentList 
-          :loading="loading"
-          :empty="activeSidebarItem === 'agent' 
-            ? filteredAgents.length === 0 
-            : filteredPlugins.length === 0"
-        >
+        <ContentList :loading="loading" :empty="activeSidebarItem === 'agent'
+          ? filteredAgents.length === 0
+          : activeSidebarItem === 'plugin'
+            ? filteredPlugins.length === 0
+            : activeSidebarItem === 'workflow'
+              ? filteredWorkflows.length === 0
+              : activeSidebarItem === 'knowledge'
+                ? filteredKnowledgeBases.length === 0
+                : false">
           <template #empty>
             <div class="empty-state">
-              <div class="empty-icon">🤖</div>
+              <div class="empty-icon">{{ 
+                activeSidebarItem === 'workflow' ? '⚙️' 
+                : activeSidebarItem === 'knowledge' ? '📚'
+                : '🤖' 
+              }}</div>
               <h3 class="empty-title">还没有{{ pageTitle }}</h3>
               <p class="empty-desc">创建你的第一个{{ pageTitle }}，开始 AI 之旅</p>
               <button class="btn-primary" @click="openCreateDialog">创建{{ pageTitle }}</button>
@@ -426,57 +666,45 @@ onMounted(async () => {
           </template>
           <!-- 智能体卡片 -->
           <template v-if="activeSidebarItem === 'agent'">
-            <AgentCard
-              v-for="(item, index) in filteredAgents"
-              :key="item.id || index"
-              :agent="item"
-              :index="index"
-              @click="handleAgentClick"
-              @edit="handleAgentEdit"
-              @delete="handleAgentDelete"
-            />
+            <AgentCard v-for="(item, index) in filteredAgents" :key="item.id || index" :agent="item" :index="index"
+              @click="handleAgentClick" @edit="handleAgentEdit" @delete="handleAgentDelete" />
           </template>
           <!-- 插件卡片 -->
           <template v-if="activeSidebarItem === 'plugin'">
-            <PluginCard
-              v-for="(item, index) in filteredPlugins"
-              :key="item.id || index"
-              :plugin="item"
-              :index="index"
-              @click="handlePluginClick"
-              @edit="handlePluginEdit"
-              @delete="handlePluginDelete"
-              @toggle-status="handlePluginToggleStatus"
-            />
+            <PluginCard v-for="(item, index) in filteredPlugins" :key="item.id || index" :plugin="item" :index="index"
+              @click="handlePluginClick" @edit="handlePluginEdit" @delete="handlePluginDelete"
+              @toggle-status="handlePluginToggleStatus" />
+          </template>
+          <!-- 工作流卡片 -->
+          <template v-if="activeSidebarItem === 'workflow'">
+            <WorkflowCard v-for="(item, index) in filteredWorkflows" :key="item.id || index" :workflow="item"
+              :index="index" @click="handleWorkflowClick" @edit="handleWorkflowEdit" @delete="handleWorkflowDelete" />
+          </template>
+          <!-- 知识库卡片 -->
+          <template v-if="activeSidebarItem === 'knowledge'">
+            <KnowledgeCard v-for="(item, index) in filteredKnowledgeBases" :key="item.id || index" 
+              :knowledgeBase="item" :index="index"
+              @view="handleKnowledgeBaseClick" @edit="handleKnowledgeBaseEdit" @delete="handleKnowledgeBaseDelete" />
           </template>
         </ContentList>
       </div>
     </div>
 
     <!-- 创建智能体对话框（仅智能体时显示） -->
-    <CreateAgentDialog
-      v-if="activeSidebarItem === 'agent'"
-      :show="showCreateDialog"
-      @close="closeCreateDialog"
-      @success="handleCreateSuccess"
-    />
+    <CreateAgentDialog v-if="activeSidebarItem === 'agent'" :show="showCreateDialog" @close="closeCreateDialog"
+      @success="handleCreateSuccess" />
 
     <!-- 编辑智能体对话框 -->
-    <AgentEditorDialog
-      v-if="activeSidebarItem === 'agent'"
-      :show="showEditDialog"
-      :agent="editingAgent"
-      @close="closeEditDialog"
-      @save="handleEditSave"
-    />
+    <AgentEditorDialog v-if="activeSidebarItem === 'agent'" :show="showEditDialog" :agent="editingAgent"
+      @close="closeEditDialog" @save="handleEditSave" />
 
     <!-- 插件编辑/创建对话框 -->
-    <PluginEditDialog
-      v-if="activeSidebarItem === 'plugin'"
-      v-model="showPluginDialog"
-      :plugin="editingPlugin"
-      @success="handlePluginSaveSuccess"
-    />
+    <PluginEditDialog v-if="activeSidebarItem === 'plugin'" v-model="showPluginDialog" :plugin="editingPlugin"
+      @success="handlePluginSaveSuccess" />
+
+    <!-- 知识库编辑/创建对话框 -->
+    <KnowledgeDialog v-if="activeSidebarItem === 'knowledge'" :show="showKnowledgeDialog"
+      :knowledge-base="editingKB || undefined" @close="closeKnowledgeDialog" @saved="handleKnowledgeBaseSaved" />
   </div>
 </template>
 

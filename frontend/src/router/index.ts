@@ -19,9 +19,21 @@ const routes: RouteRecordRaw[] = [
     props: true
   },
   {
+    path: '/workflow/:id/edit',
+    name: 'WorkflowEdit',
+    component: () => import('@/views/Workflow/WorkflowEditor.vue'),
+    props: true
+  },
+  {
     path: '/plugins/:id',
     name: 'PluginDetail',
     component: () => import('@/views/Plugin/PluginDetail.vue'),
+    props: true
+  },
+  {
+    path: '/knowledge/:id',
+    name: 'KnowledgeBaseDetail',
+    component: () => import('@/views/Knowledge/KnowledgeBaseDetail.vue'),
     props: true
   }
 ]
