@@ -474,7 +474,7 @@ export function nodeToGraphNode(node: Node): GraphNode {
     id: node.id,
     type: node.type,
     position: node.position || { x: 0, y: 0 },
-    data: node.data || node.config,
+    data: node.data,
   } as GraphNode
 }
 
