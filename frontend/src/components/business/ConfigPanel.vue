@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { pluginApi, agentApi, knowledgeApi } from '@/api'
+import { pluginApi, agentApi, knowledgeApi, workflowApi } from '@/api'
 import type { Plugin, Operation, PathItem } from '@/types/plugin'
 import type { ModelConfig } from '@/types/agent'
 import type { KnowledgeBase } from '@/types/knowledge-base'
+import type { WorkflowForm } from '@/types/workflow'
 
 const props = defineProps<{
   agentId?: number
@@ -312,6 +313,72 @@ watch(() => props.modelConfig, () => {
   initModelConfig()
 }, { deep: true, immediate: true })
 
+// 打开工作流编辑页面
+const openWorkflowEditor = async () => {
+  try {
+    // 如果已经存在工作流，直接跳转
+    if (props.workflowId) {
+      router.push(`/workflow/${props.workflowId}/edit`)
+      return
+    }
+
+    // 没有工作流时，为当前智能体创建一个默认工作流
+    if (!props.agentId) {
+      alert('请先保存智能体，再配置工作流')
+      return
+    }
+
+    const defaultWorkflow: WorkflowForm = {
+      name: '智能体工作流',
+      description: '由智能体自动创建的默认工作流',
+      version: 'v1',
+      nodes: [
+        {
+          id: 'start',
+          type: 'start',
+          position: { x: 80, y: 200 },
+          data: {
+            name: '开始',
+          },
+        },
+        {
+          id: 'end',
+          type: 'end',
+          position: { x: 560, y: 200 },
+          data: {
+            name: '结束',
+            output_text: '',
+          },
+        },
+      ],
+      edges: [],
+      config: {
+        timeout: 60,
+        retry: 0,
+        parallel: false,
+      },
+    }
+
+    const created = await workflowApi.create(defaultWorkflow)
+    if (!created.id) {
+      throw new Error('创建工作流失败：未返回工作流 ID')
+    }
+    
+    // 将字符串 ID 转换为数字（用于更新智能体）
+    const workflowIdNumber = parseInt(created.id, 10)
+    if (isNaN(workflowIdNumber)) {
+      throw new Error('工作流 ID 格式错误')
+    }
+    
+    await agentApi.update(props.agentId, { workflowId: workflowIdNumber })
+    emit('update:workflowId', workflowIdNumber)
+    router.push(`/workflow/${workflowIdNumber}/edit`)
+  } catch (error: any) {
+    console.error('打开工作流编辑器失败:', error)
+    alert('打开工作流编辑器失败: ' + (error?.message || '未知错误'))
+  }
+}
+
 onMounted(() => {
   loadData()
   initModelConfig()
@@ -541,7 +608,7 @@ onMounted(() => {
               使用工作流可以通过「开始 → 意图识别 → 大模型 → 结束」等节点，编排更复杂的回复流程。
             </div>
           </div>
-          <button class="workflow-btn" @click="router.push('/workflow/1/editor')">
+          <button class="workflow-btn" @click="openWorkflowEditor">
             {{ workflowId ? '编辑工作流' : '创建并编辑工作流' }}
           </button>
         </div>

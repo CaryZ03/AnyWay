@@ -16,6 +16,7 @@ import KnowledgeDialog from '@/components/knowledge/KnowledgeDialog.vue'
 import AgentEditorDialog from '@/components/agent/AgentEditorDialog.vue'
 import CreateAgentDialog from '@/components/agent/AgentCreateDialog.vue'
 import PluginEditDialog from '@/components/plugin/PluginEditDialog.vue'
+import WorkflowCreateDialog from '@/components/workflow/WorkflowCreateDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -46,6 +47,7 @@ const showPluginDialog = ref(false)
 const editingPlugin = ref<Plugin | null>(null)
 const showKnowledgeDialog = ref(false)
 const editingKB = ref<KnowledgeBase | null>(null)
+const showWorkflowDialog = ref(false)
 
 // 过滤后的列表（仅智能体）
 const filteredAgents = computed(() => {
@@ -452,49 +454,19 @@ const handlePluginToggleStatus = async (plugin: Plugin) => {
 }
 
 // 创建工作流
-const handleCreateWorkflow = async () => {
-  try {
-    const name = prompt('请输入工作流名称:')
-    if (!name || !name.trim()) return
+const handleCreateWorkflow = () => {
+  showWorkflowDialog.value = true
+}
 
-    const description = prompt('请输入工作流描述（可选）:') || ''
+// 关闭工作流对话框
+const closeWorkflowDialog = () => {
+  showWorkflowDialog.value = false
+}
 
-    const newWorkflow: WorkflowForm = {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      nodes: [{
-        id: 'node-start',
-        type: 'start',
-        data: {
-          name: '开始',
-          input_text: '用户输入'
-        },
-        position: { x: 250, y: 0 }
-      },
-      {
-        id: 'node-end',
-        type: 'end',
-        data: {
-          name: '结束',
-          output_text: '最终结果',
-        },
-        position: { x: 300, y: 400 }
-      }],
-      edges: [],
-      config: {},
-    }
-
-    const created = await workflowApi.create(newWorkflow)
-    await fetchCurrentData()
-    console.log('created', created)
-    // 创建成功后跳转到编辑页面
-    // if (created.id) {
-    //   router.push(`/workflow/${created.id}/edit`)
-    // }
-  } catch (error: any) {
-    console.error('创建工作流失败:', error)
-    alert('创建失败: ' + (error?.message || '未知错误'))
-  }
+// 工作流保存成功回调
+const handleWorkflowSaved = () => {
+  closeWorkflowDialog()
+  fetchCurrentData()
 }
 
 // 点击工作流卡片 - 跳转到编辑页面
@@ -705,6 +677,10 @@ onMounted(async () => {
     <!-- 知识库编辑/创建对话框 -->
     <KnowledgeDialog v-if="activeSidebarItem === 'knowledge'" :show="showKnowledgeDialog"
       :knowledge-base="editingKB || undefined" @close="closeKnowledgeDialog" @saved="handleKnowledgeBaseSaved" />
+
+    <!-- 工作流创建对话框 -->
+    <WorkflowCreateDialog v-if="activeSidebarItem === 'workflow'" :show="showWorkflowDialog"
+      @close="closeWorkflowDialog" @saved="handleWorkflowSaved" />
   </div>
 </template>
 
