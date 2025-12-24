@@ -18,6 +18,7 @@ VALID_DEFINITION = {
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 class WorkflowApiTests(APITestCase):
+    # 覆盖工作流 CRUD、执行成功/失败 API
     def setUp(self):
         self.workflow = Workflow.objects.create(
             name='Flow1',
@@ -27,6 +28,7 @@ class WorkflowApiTests(APITestCase):
         )
 
     def test_create_workflow(self):
+        # 创建工作流成功路径
         resp = self.client.post('/api/v1/workflows/', {
             'name': 'Flow2',
             'description': 'd',
@@ -39,6 +41,7 @@ class WorkflowApiTests(APITestCase):
         assert Workflow.objects.filter(name='Flow2', deleted=False).exists()
 
     def test_list_and_retrieve(self):
+        # 列表与详情
         list_resp = self.client.get('/api/v1/workflows/')
         assert list_resp.status_code == 200
         data = list_resp.json().get('data')
@@ -49,6 +52,7 @@ class WorkflowApiTests(APITestCase):
         assert get_resp.json().get('data', {}).get('id') == self.workflow.id
 
     def test_update_and_delete(self):
+        # 更新与逻辑删除
         update_resp = self.client.put(f'/api/v1/workflows/{self.workflow.id}/', {
             'name': 'Flow1-upd',
             'definition': VALID_DEFINITION,
@@ -67,6 +71,7 @@ class WorkflowApiTests(APITestCase):
         assert all(item['id'] != self.workflow.id for item in list_resp.json().get('data'))
 
     def test_execute_success(self):
+        # 执行成功路径，mock Engine.execute 回填结果
         def fake_execute(workflow, input_data, execution):
             execution.status = 'completed'
             execution.output_data = {'answer': 'ok'}
@@ -86,6 +91,7 @@ class WorkflowApiTests(APITestCase):
         assert WorkflowExecution.objects.filter(workflow=self.workflow).count() == 1
 
     def test_execute_failure(self):
+        # 执行失败路径，抛 WorkflowExecutionError 应返回 500
         with patch('apps.workflow.views.WorkflowEngine.execute', side_effect=WorkflowExecutionError('boom')):
             resp = self.client.post(
                 f'/api/v1/workflows/{self.workflow.id}/execute/',

@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,6 +9,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_execute_llm_node_success(monkeypatch):
+    # LLM 节点正常返回 JSON 时应解析为 dict
     engine = WorkflowEngine()
     engine.context = {"user_input": "hello"}
     cfg = {"prompt": "Answer", "systemPrompt": "sys", "model": "demo"}
@@ -17,12 +18,13 @@ def test_execute_llm_node_success(monkeypatch):
         def chat(self, *args, **kwargs):
             return json.dumps({"answer": "ok", "thoughts": "t"})
 
-    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider: DummyLLM())
+    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider=None: DummyLLM())
     result = engine._execute_llm_node(cfg)
     assert result["answer"] == "ok"
 
 
 def test_execute_llm_node_non_json_raises(monkeypatch):
+    # LLM 返回非 JSON 时应抛 WorkflowExecutionError
     engine = WorkflowEngine()
     engine.context = {"user_input": "hello"}
     cfg = {"prompt": "Answer"}
@@ -31,12 +33,13 @@ def test_execute_llm_node_non_json_raises(monkeypatch):
         def chat(self, *args, **kwargs):
             return "not-json"
 
-    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider: DummyLLM())
+    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider=None: DummyLLM())
     with pytest.raises(WorkflowExecutionError):
         engine._execute_llm_node(cfg)
 
 
 def test_execute_http_node_replaces_and_returns(monkeypatch):
+    # HTTP 节点应替换变量并返回 body/headers/url
     engine = WorkflowEngine()
     engine.context = {"input": {"id": 123}}
     cfg = {
@@ -59,12 +62,14 @@ def test_execute_http_node_replaces_and_returns(monkeypatch):
 
 
 def test_execute_http_node_missing_url_raises():
+    # 缺失 URL 配置应抛异常
     engine = WorkflowEngine()
     with pytest.raises(WorkflowExecutionError):
         engine._execute_http_node({"method": "GET"})
 
 
 def test_execute_http_node_retries_on_timeout(monkeypatch):
+    # HTTP 节点在第一次异常时应重试
     engine = WorkflowEngine()
     engine.context = {}
     cfg = {
@@ -87,7 +92,7 @@ def test_execute_http_node_retries_on_timeout(monkeypatch):
         return fake_resp
 
     side_effect.calls = 0
-    monkeypatch.setattr("apps.workflow.services.requests.request", side_effect)
+    monkeypatch.setattr("apps.workflow.services.requests.request", lambda **kwargs: side_effect(**kwargs))
 
     result = engine._execute_http_node(cfg)
     assert result["success"] is True
@@ -95,6 +100,7 @@ def test_execute_http_node_retries_on_timeout(monkeypatch):
 
 
 def test_execute_knowledge_node_success(monkeypatch):
+    # 知识库节点成功返回列表
     engine = WorkflowEngine()
     engine.context = {"input": {"q": "hello"}}
     cfg = {"knowledge_base_id": 1, "query": "{input.q}", "top_k": 2}
@@ -109,12 +115,14 @@ def test_execute_knowledge_node_success(monkeypatch):
 
 
 def test_execute_knowledge_node_missing_id_raises():
+    # 缺失知识库 id 应抛异常
     engine = WorkflowEngine()
     with pytest.raises(WorkflowExecutionError):
         engine._execute_knowledge_node({"query": "hi"})
 
 
 def test_execute_start_node_populates_user_input():
+    # start 节点应填充 user_input
     engine = WorkflowEngine()
     engine.context = {"message": "hello"}
     result = engine._execute_start_node({})
@@ -123,6 +131,7 @@ def test_execute_start_node_populates_user_input():
 
 
 def test_execute_intent_node_success(monkeypatch):
+    # intent 节点选择命中 intent 并写入上下文
     engine = WorkflowEngine()
     engine.context = {"user_input": "book a flight"}
     cfg = {
@@ -136,13 +145,14 @@ def test_execute_intent_node_success(monkeypatch):
         def chat(self, *args, **kwargs):
             return json.dumps({"intent_id": "book", "intent_name": "Book", "reason": "match"})
 
-    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider: DummyLLM())
+    monkeypatch.setattr("apps.workflow.services.get_llm_service", lambda provider=None: DummyLLM())
     result = engine._execute_intent_node(cfg)
     assert result["intent_id"] == "book"
     assert engine.context["intent"] == "Book"
 
 
 def test_execute_intent_node_missing_intents_raises():
+    # intents 为空应报错
     engine = WorkflowEngine()
     engine.context = {"user_input": "hi"}
     with pytest.raises(WorkflowExecutionError):
@@ -150,6 +160,7 @@ def test_execute_intent_node_missing_intents_raises():
 
 
 def test_execute_intent_node_no_user_input_raises():
+    # 缺少 user_input 时应报错
     engine = WorkflowEngine()
     with pytest.raises(WorkflowExecutionError):
         engine._execute_intent_node({"intents": [{"id": "a", "name": "A"}]})

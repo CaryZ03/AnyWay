@@ -7,6 +7,7 @@ pytestmark = pytest.mark.django_db
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 def test_search_requires_query_and_top_k_bounds():
+    # 搜索接口参数校验：缺 query / top_k 超范围
     client = APIClient()
     kb_resp = client.post("/api/v1/knowledge/", {"name": "KB", "description": "d"}, format="json")
     assert kb_resp.status_code == 201
@@ -23,4 +24,3 @@ def test_search_requires_query_and_top_k_bounds():
         format="json",
     )
     assert resp_topk.status_code == 400
-

@@ -10,6 +10,7 @@ from apps.llm.services import VolcanoService, OpenAIService
     ({"choices": [{"message": {"content": "hi"}}]}, "hi"),
 ])
 def test_volcano_chat_basic(response_body, expected):
+    # 火山引擎基础回复
     fake_resp = MagicMock()
     fake_resp.json.return_value = response_body
     fake_resp.raise_for_status.return_value = None
@@ -24,6 +25,7 @@ def test_volcano_chat_basic(response_body, expected):
 
 
 def test_volcano_chat_with_tool_calls_triggers_second_call():
+    # tool_calls 分支触发第二轮对话
     first = MagicMock()
     first.json.return_value = {
         "choices": [
@@ -56,6 +58,7 @@ def test_volcano_chat_with_tool_calls_triggers_second_call():
 
 
 def test_volcano_chat_tool_call_missing_api_map_returns_original():
+    # tool_call 缺少 api_map 时直接返回首轮回复
     first = MagicMock()
     first.json.return_value = {
         "choices": [
@@ -83,12 +86,14 @@ def test_volcano_chat_tool_call_missing_api_map_returns_original():
 
 
 def test_openai_service_without_client_returns_placeholder():
+    # OpenAI 未配置时返回占位提示
     svc = OpenAIService(api_key=None)
     result = svc.chat(messages=[{"role": "user", "content": "hi"}])
     assert result == "OpenAI服务未配置"
 
 
 def test_volcano_chat_tool_call_http_error_returns_error(monkeypatch):
+    # 插件调用 HTTP 失败时应有兜底返回
     first = MagicMock()
     first.json.return_value = {
         "choices": [
@@ -108,7 +113,7 @@ def test_volcano_chat_tool_call_http_error_returns_error(monkeypatch):
     second.json.return_value = {"choices": [{"message": {"content": "second"}}]}
     second.raise_for_status.return_value = None
 
-    def fake_get(url, params=None, json=None, timeout=5):
+    def fake_get():
         raise Exception("http fail")
 
     with patch.dict(os.environ, {"ARK_API_KEY": "test-key", "ARK_API_BASE": "http://fake"}, clear=False):

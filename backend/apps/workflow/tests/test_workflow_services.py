@@ -2,6 +2,7 @@ from apps.workflow.services import WorkflowValidator, WorkflowEngine, WorkflowEx
 
 
 def test_validate_requires_start_and_end():
+    # 校验缺少结束节点
     definition = {"nodes": [{"id": "n1", "type": "start"}], "edges": []}
     errors, warnings = WorkflowValidator.validate(definition)
     assert errors  # missing end
@@ -9,6 +10,7 @@ def test_validate_requires_start_and_end():
 
 
 def test_validate_detects_cycle():
+    # 检测有向图循环
     definition = {
         "nodes": [
             {"id": "start", "type": "start"},
@@ -26,6 +28,7 @@ def test_validate_detects_cycle():
 
 
 def test_topological_order_basic():
+    # 拓扑排序保持 start 在前、end 在后
     definition = {
         "nodes": [
             {"id": "start", "type": "start"},
@@ -42,6 +45,7 @@ def test_topological_order_basic():
 
 
 def test_replace_variables_supports_input_and_nodes():
+    # 变量替换应支持 input 与前置节点结果
     engine = WorkflowEngine()
     engine.context = {
         "input": {"user": "alice"},
@@ -53,6 +57,7 @@ def test_replace_variables_supports_input_and_nodes():
 
 
 def test_assert_valid_raises_on_invalid():
+    # 无节点/边时 assert_valid 应抛异常
     definition = {"nodes": [], "edges": []}
     try:
         WorkflowValidator.assert_valid(definition)

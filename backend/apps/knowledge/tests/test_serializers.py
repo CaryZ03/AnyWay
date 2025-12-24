@@ -14,6 +14,7 @@ pytestmark = pytest.mark.django_db(strict=True)
 
 
 def test_document_upload_serializer_rejects_bad_extension():
+    # 非允许扩展名应被拒绝
     upload = SimpleUploadedFile("file.pdf", b"bad", content_type="application/pdf")
     serializer = DocumentUploadSerializer(data={"file": upload})
     with pytest.raises(serializers.ValidationError):
@@ -21,6 +22,7 @@ def test_document_upload_serializer_rejects_bad_extension():
 
 
 def test_document_upload_serializer_rejects_too_large():
+    # 超过 10MB 的文件应被拒绝
     big_content = b"a" * (10 * 1024 * 1024 + 1)  # just over 10MB
     upload = SimpleUploadedFile("file.txt", big_content, content_type="text/plain")
     serializer = DocumentUploadSerializer(data={"file": upload})
@@ -29,6 +31,7 @@ def test_document_upload_serializer_rejects_too_large():
 
 
 def test_knowledge_base_serializer_document_count():
+    # 序列化应包含文档数量统计
     kb = KnowledgeBase.objects.create(name="KB")
     Document.objects.create(
         knowledge_base=kb,
@@ -43,6 +46,7 @@ def test_knowledge_base_serializer_document_count():
 
 
 def test_search_request_serializer_top_k_bounds():
+    # top_k 上限校验
     serializer = SearchRequestSerializer(data={"query": "hi", "top_k": 30})
     assert serializer.is_valid() is False
     serializer = SearchRequestSerializer(data={"query": "hi", "top_k": 5})

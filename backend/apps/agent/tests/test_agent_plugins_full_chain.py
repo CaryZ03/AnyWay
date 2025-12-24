@@ -1,4 +1,3 @@
-import json
 import os
 from unittest.mock import patch, MagicMock
 
@@ -25,6 +24,7 @@ VALID_SPEC = {
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 class AgentPluginChatTests(APITestCase):
+    # 覆盖 Agent 对话调用插件工具的完整链路
     def setUp(self):
         Conversation.objects.all().delete()
         Agent.objects.all().delete()
@@ -41,7 +41,7 @@ class AgentPluginChatTests(APITestCase):
         )
 
     def test_chat_uses_plugin_tools(self):
-        # first LLM call returns tool_call, second returns final message
+        # 第一轮 LLM 返回 tool_call，插件 HTTP 结果后进行第二轮 LLM，最终返回 assistant 消息
         first = MagicMock()
         first.json.return_value = {
             "choices": [
@@ -61,7 +61,7 @@ class AgentPluginChatTests(APITestCase):
         second.json.return_value = {"choices": [{"message": {"content": "final"}}]}
         second.raise_for_status.return_value = None
 
-        # plugin HTTP call returns JSON
+        # 插件 HTTP 调用返回假数据
         fake_plugin_resp = MagicMock()
         fake_plugin_resp.json.return_value = {"msg": "hi"}
         fake_plugin_resp.text = ""
@@ -82,3 +82,33 @@ class AgentPluginChatTests(APITestCase):
         assert llm_post.call_count == 2
         assert plugin_get.called
         assert Conversation.objects.count() == 1
+
+    def test_chat_falls_back_when_no_tools(self):
+        # 当 agent 未绑定插件/工具时，chat 直接返回 LLM 首轮回复
+        Agent.objects.filter(id=self.agent.id).update(plugin_ids=[])
+
+        first = MagicMock()
+        first.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "first",
+                        "tool_calls": [],
+                    }
+                }
+            ]
+        }
+        first.raise_for_status.return_value = None
+
+        with patch.dict(os.environ, {"ARK_API_KEY": "test-key", "ARK_API_BASE": "http://fake"}, clear=False):
+            with patch('requests.Session.post', return_value=first) as llm_post:
+                resp = self.client.post(
+                    f'/api/v1/agents/{self.agent.id}/chat/',
+                    {'message': 'hi'},
+                    format='json'
+                )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body.get('data', {}).get('assistant_message') == 'first'
+        assert llm_post.call_count == 1
+

@@ -924,3 +924,1651 @@ INFO 2025-12-23 23:15:52,718 views LLM回复成功，长度: 5
 INFO 2025-12-23 23:15:52,728 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
 INFO 2025-12-23 23:15:52,728 views LLM回复成功，长度: 10
 WARNING 2025-12-23 23:15:52,746 log Bad Request: /api/v1/agents/3/publish/
+INFO 2025-12-24 18:22:34,022 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:22:34,024 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+WARNING 2025-12-24 18:22:34,024 serializers OpenAPI规范缺少必需字段: info
+WARNING 2025-12-24 18:22:34,024 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+ERROR 2025-12-24 18:22:34,024 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:34,027 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:34,027 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:34,027 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:34,027 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: info, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: info']
+WARNING 2025-12-24 18:22:34,027 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: info, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:34,027 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:22:34,540 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:22:34,541 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:22:34,541 services 发现 1 个工具调用
+INFO 2025-12-24 18:22:34,541 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:22:34,541 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:22:34,541 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:22:34,541 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:22:34,550 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+ERROR 2025-12-24 18:22:34,551 views LLM调用失败: AgentEndpointTests.test_chat_saves_conversation_and_returns_reply.<locals>.DummyLLM.chat() got an unexpected keyword argument 'messages'
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\agent\views.py", line 282, in chat
+    assistant_message = llm_service.chat(
+                        ^^^^^^^^^^^^^^^^^
+TypeError: AgentEndpointTests.test_chat_saves_conversation_and_returns_reply.<locals>.DummyLLM.chat() got an unexpected keyword argument 'messages'
+WARNING 2025-12-24 18:22:34,571 log Bad Request: /api/v1/agents/2/publish/
+ERROR 2025-12-24 18:22:34,585 views 测试LLM调用失败: AgentEndpointTests.test_test_endpoint_uses_llm_and_persists_history.<locals>.DummyLLM.chat() got an unexpected keyword argument 'messages'
+ERROR 2025-12-24 18:22:34,626 log Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+ERROR 2025-12-24 18:22:34,646 log Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+WARNING 2025-12-24 18:22:34,668 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:34,668 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:22:34,669 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:22:34,669 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:22:34,669 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:22:34,669 log Not Found: /api/v1/knowledge/999/search/
+WARNING 2025-12-24 18:22:34,674 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:34,674 exception_handler Response data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:22:34,674 exception_handler Processing error data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:22:34,674 exception_handler Using field errors: query: 该字段是必填项。, all errors: ['query: 该字段是必填项。']
+WARNING 2025-12-24 18:22:34,674 exception_handler Final error response: message=query: 该字段是必填项。, data={'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:22:34,675 log Bad Request: /api/v1/knowledge/2/search/
+WARNING 2025-12-24 18:22:34,676 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:34,676 exception_handler Response data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:22:34,676 exception_handler Processing error data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:22:34,676 exception_handler Using field errors: top_k: 请确保该值小于或者等于 20。, all errors: ['top_k: 请确保该值小于或者等于 20。']
+WARNING 2025-12-24 18:22:34,676 exception_handler Final error response: message=top_k: 请确保该值小于或者等于 20。, data={'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:22:34,676 log Bad Request: /api/v1/knowledge/2/search/
+ERROR 2025-12-24 18:22:35,113 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:22:35,115 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:22:35,116 services OpenAI Embedding API调用失败: bad
+INFO 2025-12-24 18:22:35,119 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:22:35,123 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:22:35,123 services 发现 1 个工具调用
+INFO 2025-12-24 18:22:35,123 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:22:35,123 services 准备调用插件API: tool1 -> http://fake, 方法: GET
+ERROR 2025-12-24 18:22:37,836 services 插件调用失败: tool1, 错误: HTTPConnectionPool(host='fake', port=80): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPConnection(host='fake', port=80): Failed to resolve 'fake' ([Errno 11001] getaddrinfo failed)"))
+INFO 2025-12-24 18:22:37,840 services 调用火山引擎API: model=demo, messages_count=1
+ERROR 2025-12-24 18:22:37,843 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+INFO 2025-12-24 18:22:37,846 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:22:37,846 services 发现 1 个工具调用
+INFO 2025-12-24 18:22:37,846 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:22:37,846 services 准备调用插件API: tool1 -> http://fake/tool, 方法: GET
+ERROR 2025-12-24 18:22:37,846 services 插件调用失败: tool1, 错误: test_volcano_chat_tool_call_http_error_returns_error.<locals>.fake_get() got an unexpected keyword argument 'params'
+INFO 2025-12-24 18:22:37,852 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:22:37,852 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+WARNING 2025-12-24 18:22:37,852 serializers OpenAPI规范缺少必需字段: info
+WARNING 2025-12-24 18:22:37,852 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+ERROR 2025-12-24 18:22:37,852 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:37,853 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:37,853 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:37,853 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:37,853 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: info, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: info']
+WARNING 2025-12-24 18:22:37,853 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: info, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:22:37,853 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:22:37,860 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:22:37,861 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:22:37,861 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:22:37,861 views 插件创建成功: 1
+INFO 2025-12-24 18:22:37,873 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:22:37,873 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:22:37,873 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:22:37,874 views 插件创建成功: 2
+INFO 2025-12-24 18:22:37,889 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:22:37,890 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:22:37,890 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:22:37,890 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:22:37,890 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:22:37,890 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:22:37,890 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:22:37,891 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:22:37,891 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:22:37,891 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:22:37,891 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:22:37,893 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:22:37,893 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:22:37,893 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:22:37,893 views 插件创建成功: 3
+INFO 2025-12-24 18:22:37,902 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:22:37,902 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:22:37,924 services 开始执行工作流 1，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:22:37,924 services 节点 intent(intent) 执行失败: 意图识别节点未配置 intents 列表
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 433, in _execute_node
+    return self._execute_intent_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 473, in _execute_intent_node
+    raise WorkflowExecutionError("意图识别节点未配置 intents 列表")
+apps.workflow.services.WorkflowExecutionError: 意图识别节点未配置 intents 列表
+ERROR 2025-12-24 18:22:37,925 log Internal Server Error: /api/v1/workflows/1/execute/
+INFO 2025-12-24 18:22:37,937 services 开始执行工作流 2，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:22:37,937 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:22:37,938 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:22:37,938 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'a', 'intent_name': 'A', 'intent_reason': 'match'}, 'http': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/data', 'method': 'GET'}, 'kb': {'results': [{'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}], 'total': 1, 'kb_id': 1, 'query': 'A', 'top_result': {'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}, 'top_content': 'doc', 'top_similarity': 0.9, 'combined_content': '【来源：未知来源】\ndoc'}}
+INFO 2025-12-24 18:22:37,938 services 工作流 2 执行完成，状态: completed
+INFO 2025-12-24 18:22:37,944 services 开始执行工作流 3，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:22:37,944 services HTTP节点执行失败（已重试0次）: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:22:37,949 services 节点 http(http) 执行失败: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:22:37,950 log Internal Server Error: /api/v1/workflows/3/execute/
+WARNING 2025-12-24 18:22:37,956 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:22:37,956 exception_handler Unhandled exception: test_workflow_execute_basic_success.<locals>.fake_execute() takes 1 positional argument but 3 were given
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\views.py", line 111, in execute
+    engine.execute(workflow, input_data, execution)
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: test_workflow_execute_basic_success.<locals>.fake_execute() takes 1 positional argument but 3 were given
+ERROR 2025-12-24 18:22:37,957 log Internal Server Error: /api/v1/workflows/4/execute/
+ERROR 2025-12-24 18:22:37,968 log Internal Server Error: /api/v1/workflows/5/execute/
+INFO 2025-12-24 18:22:37,980 services 开始执行工作流 7，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:22:37,981 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:22:37,982 log Internal Server Error: /api/v1/workflows/7/execute/
+ERROR 2025-12-24 18:22:37,989 log Internal Server Error: /api/v1/workflows/8/execute/
+WARNING 2025-12-24 18:22:37,992 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:22:37,992 exception_handler Unhandled exception: WorkflowApiTests.test_execute_success.<locals>.fake_execute() takes 1 positional argument but 3 were given
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\views.py", line 111, in execute
+    engine.execute(workflow, input_data, execution)
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: WorkflowApiTests.test_execute_success.<locals>.fake_execute() takes 1 positional argument but 3 were given
+ERROR 2025-12-24 18:22:37,993 log Internal Server Error: /api/v1/workflows/8/execute/
+INFO 2025-12-24 18:22:38,048 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+WARNING 2025-12-24 18:22:38,050 services HTTP请求失败: test_execute_http_node_retries_on_timeout.<locals>.side_effect() got an unexpected keyword argument 'method'，正在重试 (1/1)
+ERROR 2025-12-24 18:22:39,053 services HTTP节点执行失败（已重试1次）: test_execute_http_node_retries_on_timeout.<locals>.side_effect() got an unexpected keyword argument 'method'
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: test_execute_http_node_retries_on_timeout.<locals>.side_effect() got an unexpected keyword argument 'method'
+INFO 2025-12-24 18:22:39,074 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:27:39,153 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'P1'}
+INFO 2025-12-24 18:27:39,153 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+WARNING 2025-12-24 18:27:39,153 serializers OpenAPI规范缺少必需字段: info
+WARNING 2025-12-24 18:27:39,153 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+ERROR 2025-12-24 18:27:39,154 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:39,155 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:39,156 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:39,156 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:39,156 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: info, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: info']
+WARNING 2025-12-24 18:27:39,156 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: info, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:39,156 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:27:39,684 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:27:39,684 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:27:39,685 services 发现 1 个工具调用
+INFO 2025-12-24 18:27:39,685 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:27:39,685 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:27:39,685 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:27:39,685 views LLM回复成功，长度: 5
+WARNING 2025-12-24 18:27:39,708 log Bad Request: /api/v1/agents/2/publish/
+ERROR 2025-12-24 18:27:39,751 log Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+ERROR 2025-12-24 18:27:39,774 log Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+WARNING 2025-12-24 18:27:39,794 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:39,794 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:27:39,794 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:27:39,794 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:27:39,794 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:27:39,794 log Not Found: /api/v1/knowledge/999/search/
+WARNING 2025-12-24 18:27:39,799 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:39,799 exception_handler Response data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:27:39,799 exception_handler Processing error data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:27:39,799 exception_handler Using field errors: query: 该字段是必填项。, all errors: ['query: 该字段是必填项。']
+WARNING 2025-12-24 18:27:39,799 exception_handler Final error response: message=query: 该字段是必填项。, data={'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:27:39,799 log Bad Request: /api/v1/knowledge/2/search/
+WARNING 2025-12-24 18:27:39,800 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:39,800 exception_handler Response data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:27:39,800 exception_handler Processing error data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:27:39,800 exception_handler Using field errors: top_k: 请确保该值小于或者等于 20。, all errors: ['top_k: 请确保该值小于或者等于 20。']
+WARNING 2025-12-24 18:27:39,800 exception_handler Final error response: message=top_k: 请确保该值小于或者等于 20。, data={'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:27:39,801 log Bad Request: /api/v1/knowledge/2/search/
+ERROR 2025-12-24 18:27:40,141 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:27:40,144 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:27:40,144 services OpenAI Embedding API调用失败: bad
+INFO 2025-12-24 18:27:40,147 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:27:40,152 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:27:40,152 services 发现 1 个工具调用
+INFO 2025-12-24 18:27:40,153 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:27:40,153 services 准备调用插件API: tool1 -> http://fake, 方法: GET
+ERROR 2025-12-24 18:27:42,879 services 插件调用失败: tool1, 错误: HTTPConnectionPool(host='fake', port=80): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPConnection(host='fake', port=80): Failed to resolve 'fake' ([Errno 11001] getaddrinfo failed)"))
+INFO 2025-12-24 18:27:42,883 services 调用火山引擎API: model=demo, messages_count=1
+ERROR 2025-12-24 18:27:42,886 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+INFO 2025-12-24 18:27:42,889 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:27:42,889 services 发现 1 个工具调用
+INFO 2025-12-24 18:27:42,889 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:27:42,889 services 准备调用插件API: tool1 -> http://fake/tool, 方法: GET
+ERROR 2025-12-24 18:27:42,889 services 插件调用失败: tool1, 错误: test_volcano_chat_tool_call_http_error_returns_error.<locals>.fake_get() got an unexpected keyword argument 'params'
+INFO 2025-12-24 18:27:42,894 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'Demo'}
+INFO 2025-12-24 18:27:42,895 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+WARNING 2025-12-24 18:27:42,895 serializers OpenAPI规范缺少必需字段: info
+WARNING 2025-12-24 18:27:42,895 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+ERROR 2025-12-24 18:27:42,895 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:42,896 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:42,896 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:42,896 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:42,896 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: info, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: info']
+WARNING 2025-12-24 18:27:42,896 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: info, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: info', code='invalid')]}
+WARNING 2025-12-24 18:27:42,896 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:27:42,903 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:27:42,903 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:27:42,903 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:27:42,904 views 插件创建成功: 1
+INFO 2025-12-24 18:27:42,916 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:27:42,916 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:27:42,917 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:27:42,917 views 插件创建成功: 2
+INFO 2025-12-24 18:27:42,933 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:27:42,933 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:27:42,933 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:27:42,933 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:27:42,934 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:27:42,934 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:27:42,934 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:27:42,934 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:27:42,934 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:27:42,934 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:27:42,935 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:27:42,937 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:27:42,937 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:27:42,937 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:27:42,937 views 插件创建成功: 3
+INFO 2025-12-24 18:27:42,946 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:27:42,946 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:27:42,969 services 开始执行工作流 1，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:27:42,969 services 节点 intent(intent) 执行失败: 意图识别节点未配置 intents 列表
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 433, in _execute_node
+    return self._execute_intent_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 473, in _execute_intent_node
+    raise WorkflowExecutionError("意图识别节点未配置 intents 列表")
+apps.workflow.services.WorkflowExecutionError: 意图识别节点未配置 intents 列表
+ERROR 2025-12-24 18:27:42,971 log Internal Server Error: /api/v1/workflows/1/execute/
+INFO 2025-12-24 18:27:42,982 services 开始执行工作流 2，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:27:42,983 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:27:42,983 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:27:42,984 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'a', 'intent_name': 'A', 'intent_reason': 'match'}, 'http': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/data', 'method': 'GET'}, 'kb': {'results': [{'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}], 'total': 1, 'kb_id': 1, 'query': 'A', 'top_result': {'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}, 'top_content': 'doc', 'top_similarity': 0.9, 'combined_content': '【来源：未知来源】\ndoc'}}
+INFO 2025-12-24 18:27:42,984 services 工作流 2 执行完成，状态: completed
+INFO 2025-12-24 18:27:42,989 services 开始执行工作流 3，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:27:42,990 services HTTP节点执行失败（已重试0次）: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:27:42,992 services 节点 http(http) 执行失败: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:27:42,993 log Internal Server Error: /api/v1/workflows/3/execute/
+ERROR 2025-12-24 18:27:43,005 log Internal Server Error: /api/v1/workflows/5/execute/
+INFO 2025-12-24 18:27:43,017 services 开始执行工作流 7，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:27:43,018 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:27:43,019 log Internal Server Error: /api/v1/workflows/7/execute/
+ERROR 2025-12-24 18:27:43,027 log Internal Server Error: /api/v1/workflows/8/execute/
+INFO 2025-12-24 18:27:43,050 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+WARNING 2025-12-24 18:27:43,053 services HTTP请求失败: timeout，正在重试 (1/1)
+INFO 2025-12-24 18:27:44,054 services HTTP节点执行成功，状态码: 200, 尝试次数: 2/2
+INFO 2025-12-24 18:27:44,056 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:31:06,547 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:31:06,548 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:31:06,563 log Bad Request: /api/v1/agents/2/publish/
+INFO 2025-12-24 18:31:06,621 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'Demo'}
+INFO 2025-12-24 18:31:06,621 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:31:06,621 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:31:06,622 views 插件创建成功: 1
+INFO 2025-12-24 18:31:06,634 services 开始执行工作流 1，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:31:06,634 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:31:06,636 log Internal Server Error: /api/v1/workflows/1/execute/
+INFO 2025-12-24 18:31:30,052 services 开始执行工作流 1，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:31:30,053 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:31:30,053 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:31:30,054 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'route', 'intent_name': 'Route', 'intent_reason': None}, 'http1': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/ok', 'method': 'GET'}, 'kb': {'results': [{'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}], 'total': 1, 'kb_id': 1, 'query': 'hello', 'top_result': {'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}, 'top_content': 'd1', 'top_similarity': 0.8, 'combined_content': '【来源：未知来源】\nd1'}}
+INFO 2025-12-24 18:31:30,055 services 工作流 1 执行完成，状态: completed
+INFO 2025-12-24 18:32:14,846 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'P1'}
+INFO 2025-12-24 18:32:14,847 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:32:14,847 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:14,848 views 插件创建成功: 1
+INFO 2025-12-24 18:32:14,855 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:32:14,855 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:32:14,855 services 发现 1 个工具调用
+INFO 2025-12-24 18:32:14,855 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:32:14,855 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:32:14,856 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:32:14,856 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:32:14,866 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:32:14,866 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:32:14,866 services 发现 1 个工具调用
+INFO 2025-12-24 18:32:14,867 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:32:14,867 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:32:14,867 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:32:14,867 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:32:14,874 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:32:14,874 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:32:14,887 log Bad Request: /api/v1/agents/3/publish/
+WARNING 2025-12-24 18:32:14,926 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:32:14,926 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:32:14,926 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:32:14,926 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:32:14,926 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:32:14,926 log Not Found: /api/v1/knowledge/999/search/
+WARNING 2025-12-24 18:32:14,931 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:32:14,931 exception_handler Response data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:32:14,931 exception_handler Processing error data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:32:14,931 exception_handler Using field errors: query: 该字段是必填项。, all errors: ['query: 该字段是必填项。']
+WARNING 2025-12-24 18:32:14,931 exception_handler Final error response: message=query: 该字段是必填项。, data={'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:32:14,932 log Bad Request: /api/v1/knowledge/2/search/
+WARNING 2025-12-24 18:32:14,933 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:32:14,933 exception_handler Response data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:32:14,933 exception_handler Processing error data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:32:14,933 exception_handler Using field errors: top_k: 请确保该值小于或者等于 20。, all errors: ['top_k: 请确保该值小于或者等于 20。']
+WARNING 2025-12-24 18:32:14,933 exception_handler Final error response: message=top_k: 请确保该值小于或者等于 20。, data={'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:32:14,933 log Bad Request: /api/v1/knowledge/2/search/
+ERROR 2025-12-24 18:32:15,399 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:32:15,402 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:32:15,402 services OpenAI Embedding API调用失败: bad
+INFO 2025-12-24 18:32:15,405 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:32:15,409 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:32:15,409 services 发现 1 个工具调用
+INFO 2025-12-24 18:32:15,409 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:32:15,409 services 准备调用插件API: tool1 -> http://fake, 方法: GET
+ERROR 2025-12-24 18:32:18,105 services 插件调用失败: tool1, 错误: HTTPConnectionPool(host='fake', port=80): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPConnection(host='fake', port=80): Failed to resolve 'fake' ([Errno 11001] getaddrinfo failed)"))
+INFO 2025-12-24 18:32:18,110 services 调用火山引擎API: model=demo, messages_count=1
+ERROR 2025-12-24 18:32:18,113 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+INFO 2025-12-24 18:32:18,115 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:32:18,116 services 发现 1 个工具调用
+INFO 2025-12-24 18:32:18,116 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:32:18,116 services 准备调用插件API: tool1 -> http://fake/tool, 方法: GET
+ERROR 2025-12-24 18:32:18,116 services 插件调用失败: tool1, 错误: test_volcano_chat_tool_call_http_error_returns_error.<locals>.fake_get() got an unexpected keyword argument 'params'
+INFO 2025-12-24 18:32:18,123 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'Demo'}
+INFO 2025-12-24 18:32:18,123 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:32:18,123 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:18,124 views 插件创建成功: 2
+INFO 2025-12-24 18:32:18,129 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:32:18,129 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:32:18,129 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:18,130 views 插件创建成功: 3
+INFO 2025-12-24 18:32:18,141 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:32:18,142 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:32:18,142 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:18,142 views 插件创建成功: 4
+INFO 2025-12-24 18:32:18,158 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:32:18,158 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:32:18,158 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:32:18,158 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:32:18,158 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:32:18,161 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:32:18,162 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:32:18,162 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:32:18,162 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:32:18,162 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:32:18,162 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:32:18,164 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:32:18,164 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:32:18,164 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:18,165 views 插件创建成功: 5
+INFO 2025-12-24 18:32:18,173 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:32:18,174 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:32:18,195 services 开始执行工作流 1，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:32:18,195 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:32:18,195 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:32:18,196 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'route', 'intent_name': 'Route', 'intent_reason': None}, 'http1': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/ok', 'method': 'GET'}, 'kb': {'results': [{'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}], 'total': 1, 'kb_id': 1, 'query': 'hello', 'top_result': {'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}, 'top_content': 'd1', 'top_similarity': 0.8, 'combined_content': '【来源：未知来源】\nd1'}}
+INFO 2025-12-24 18:32:18,196 services 工作流 1 执行完成，状态: completed
+INFO 2025-12-24 18:32:18,205 services 开始执行工作流 2，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:32:18,205 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:32:18,206 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:32:18,206 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'a', 'intent_name': 'A', 'intent_reason': 'match'}, 'http': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/data', 'method': 'GET'}, 'kb': {'results': [{'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}], 'total': 1, 'kb_id': 1, 'query': 'A', 'top_result': {'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}, 'top_content': 'doc', 'top_similarity': 0.9, 'combined_content': '【来源：未知来源】\ndoc'}}
+INFO 2025-12-24 18:32:18,206 services 工作流 2 执行完成，状态: completed
+INFO 2025-12-24 18:32:18,212 services 开始执行工作流 3，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:32:18,212 services HTTP节点执行失败（已重试0次）: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:32:18,217 services 节点 http(http) 执行失败: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:32:18,218 log Internal Server Error: /api/v1/workflows/3/execute/
+ERROR 2025-12-24 18:32:18,230 log Internal Server Error: /api/v1/workflows/5/execute/
+INFO 2025-12-24 18:32:18,241 services 开始执行工作流 7，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:32:18,241 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:32:18,242 log Internal Server Error: /api/v1/workflows/7/execute/
+ERROR 2025-12-24 18:32:18,250 log Internal Server Error: /api/v1/workflows/8/execute/
+INFO 2025-12-24 18:32:18,270 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+WARNING 2025-12-24 18:32:18,273 services HTTP请求失败: timeout，正在重试 (1/1)
+INFO 2025-12-24 18:32:19,275 services HTTP节点执行成功，状态码: 200, 尝试次数: 2/2
+INFO 2025-12-24 18:32:19,278 services 知识库检索完成，找到 1 个结果
+WARNING 2025-12-24 18:37:31,142 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:37:31,142 exception_handler Response data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:37:31,143 exception_handler Processing error data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:37:31,143 exception_handler Using field errors: message: 该字段是必填项。, all errors: ['message: 该字段是必填项。']
+WARNING 2025-12-24 18:37:31,143 exception_handler Final error response: message=message: 该字段是必填项。, data={'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:37:31,144 log Bad Request: /api/v1/agents/1/chat/
+INFO 2025-12-24 18:37:31,150 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:37:31,150 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:37:31,163 log Bad Request: /api/v1/agents/2/publish/
+INFO 2025-12-24 18:37:31,185 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:37:31,186 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:37:31,186 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:37:31,194 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:37:31,195 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:37:31,195 services 发现 1 个工具调用
+INFO 2025-12-24 18:37:31,195 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:37:31,195 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:37:31,195 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:37:31,196 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:37:31,221 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:37:31,222 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:37:31,222 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:37:31,222 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:37:31,222 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:37:31,223 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:37:31,223 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:37:31,223 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:37:31,223 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:37:31,223 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:37:31,224 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:37:31,226 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:37:31,226 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:37:31,227 serializers OpenAPI规范缺少必需字段: paths
+WARNING 2025-12-24 18:37:31,227 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+ERROR 2025-12-24 18:37:31,227 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:37:31,227 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:37:31,227 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:37:31,227 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:37:31,227 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: paths, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: paths']
+WARNING 2025-12-24 18:37:31,228 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: paths, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:37:31,228 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:37:31,232 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}}
+INFO 2025-12-24 18:37:31,233 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}
+WARNING 2025-12-24 18:37:31,233 serializers OpenAPI规范中的servers[0].url字段为空，servers[0]: {}
+WARNING 2025-12-24 18:37:31,233 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+ERROR 2025-12-24 18:37:31,233 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:37:31,233 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:37:31,233 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:37:31,234 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:37:31,234 exception_handler Using field errors: openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, all errors: ['openapi_spec: OpenAPI规范中的servers[0].url字段不能为空']
+WARNING 2025-12-24 18:37:31,234 exception_handler Final error response: message=openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:37:31,234 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:37:31,237 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:37:31,237 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:37:31,238 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:37:31,238 views 插件创建成功: 1
+INFO 2025-12-24 18:37:31,248 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:37:31,248 serializers OpenAPI 规范验证通过
+ERROR 2025-12-24 18:37:31,303 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+INFO 2025-12-24 18:37:31,309 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:37:31,309 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:37:31,309 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:37:31,310 views 插件创建成功: 1
+ERROR 2025-12-24 18:37:31,312 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+WARNING 2025-12-24 18:37:31,312 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:37:31,312 exception_handler Unhandled exception: ApiResponse.server_error() got an unexpected keyword argument 'data'
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 161, in call
+    return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ApiResponse.server_error() got an unexpected keyword argument 'data'
+ERROR 2025-12-24 18:37:31,315 log Internal Server Error: /api/v1/plugins/1/call/
+WARNING 2025-12-24 18:39:45,145 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,145 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:39:45,146 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:39:45,146 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:39:45,146 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:39:45,147 log Not Found: /api/v1/agents/999/chat/
+WARNING 2025-12-24 18:39:45,626 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,626 exception_handler Response data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:39:45,626 exception_handler Processing error data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:39:45,626 exception_handler Using field errors: message: 该字段是必填项。, all errors: ['message: 该字段是必填项。']
+WARNING 2025-12-24 18:39:45,626 exception_handler Final error response: message=message: 该字段是必填项。, data={'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:39:45,627 log Bad Request: /api/v1/agents/1/chat/
+INFO 2025-12-24 18:39:45,632 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:39:45,632 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:39:45,646 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,646 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:39:45,646 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:39:45,646 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:39:45,646 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:39:45,646 log Not Found: /api/v1/agents/999/publish/
+WARNING 2025-12-24 18:39:45,650 log Bad Request: /api/v1/agents/2/publish/
+INFO 2025-12-24 18:39:45,672 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:39:45,672 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:39:45,672 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:39:45,683 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:39:45,683 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:39:45,683 services 发现 1 个工具调用
+INFO 2025-12-24 18:39:45,683 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:39:45,683 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:39:45,684 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:39:45,684 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:39:45,708 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:39:45,708 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:39:45,709 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:39:45,709 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:39:45,709 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:39:45,710 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,710 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:39:45,710 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:39:45,710 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:39:45,710 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:39:45,711 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:39:45,714 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:39:45,714 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:39:45,714 serializers OpenAPI规范缺少必需字段: paths
+WARNING 2025-12-24 18:39:45,714 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+ERROR 2025-12-24 18:39:45,714 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:39:45,715 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,715 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:39:45,715 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:39:45,715 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: paths, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: paths']
+WARNING 2025-12-24 18:39:45,715 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: paths, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:39:45,715 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:39:45,718 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}}
+INFO 2025-12-24 18:39:45,718 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}
+WARNING 2025-12-24 18:39:45,719 serializers OpenAPI规范中的servers[0].url字段为空，servers[0]: {}
+WARNING 2025-12-24 18:39:45,719 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+ERROR 2025-12-24 18:39:45,719 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:39:45,720 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:39:45,720 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:39:45,720 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:39:45,720 exception_handler Using field errors: openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, all errors: ['openapi_spec: OpenAPI规范中的servers[0].url字段不能为空']
+WARNING 2025-12-24 18:39:45,720 exception_handler Final error response: message=openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:39:45,720 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:39:45,723 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:39:45,723 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:39:45,723 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:39:45,723 views 插件创建成功: 1
+INFO 2025-12-24 18:39:45,733 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:39:45,733 serializers OpenAPI 规范验证通过
+ERROR 2025-12-24 18:39:45,749 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+INFO 2025-12-24 18:39:45,753 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:39:45,753 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:39:45,753 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:39:45,754 views 插件创建成功: 1
+ERROR 2025-12-24 18:39:45,756 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+WARNING 2025-12-24 18:39:45,756 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:39:45,756 exception_handler Unhandled exception: ApiResponse.server_error() got an unexpected keyword argument 'data'
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 161, in call
+    return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ApiResponse.server_error() got an unexpected keyword argument 'data'
+ERROR 2025-12-24 18:39:45,757 log Internal Server Error: /api/v1/plugins/1/call/
+WARNING 2025-12-24 18:40:08,960 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:08,961 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:08,961 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:08,961 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:40:08,961 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:40:08,962 log Not Found: /api/v1/agents/999/chat/
+WARNING 2025-12-24 18:40:08,967 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:08,968 exception_handler Response data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:08,968 exception_handler Processing error data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:08,968 exception_handler Using field errors: message: 该字段是必填项。, all errors: ['message: 该字段是必填项。']
+WARNING 2025-12-24 18:40:08,968 exception_handler Final error response: message=message: 该字段是必填项。, data={'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:08,968 log Bad Request: /api/v1/agents/1/chat/
+INFO 2025-12-24 18:40:08,973 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:40:08,974 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:40:08,988 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:08,988 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:08,988 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:08,989 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:40:08,989 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:40:08,989 log Not Found: /api/v1/agents/999/publish/
+WARNING 2025-12-24 18:40:08,992 log Bad Request: /api/v1/agents/2/publish/
+INFO 2025-12-24 18:40:09,014 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:40:09,014 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:40:09,015 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:40:09,022 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:40:09,023 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:40:09,023 services 发现 1 个工具调用
+INFO 2025-12-24 18:40:09,023 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:40:09,023 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:40:09,023 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:40:09,023 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:40:09,041 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:40:09,041 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:40:09,041 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:40:09,041 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:40:09,041 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:09,042 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:09,042 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:09,043 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:09,043 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:40:09,043 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:09,043 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:09,045 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:40:09,045 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:40:09,045 serializers OpenAPI规范缺少必需字段: paths
+WARNING 2025-12-24 18:40:09,045 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+ERROR 2025-12-24 18:40:09,045 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:09,046 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:09,046 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:09,046 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:09,046 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: paths, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: paths']
+WARNING 2025-12-24 18:40:09,046 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: paths, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:09,046 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:09,048 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}}
+INFO 2025-12-24 18:40:09,049 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}
+WARNING 2025-12-24 18:40:09,049 serializers OpenAPI规范中的servers[0].url字段为空，servers[0]: {}
+WARNING 2025-12-24 18:40:09,049 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+ERROR 2025-12-24 18:40:09,049 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:09,049 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:09,049 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:09,049 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:09,050 exception_handler Using field errors: openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, all errors: ['openapi_spec: OpenAPI规范中的servers[0].url字段不能为空']
+WARNING 2025-12-24 18:40:09,050 exception_handler Final error response: message=openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:09,050 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:09,052 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:40:09,052 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:40:09,053 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:09,053 views 插件创建成功: 1
+INFO 2025-12-24 18:40:09,061 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:40:09,062 serializers OpenAPI 规范验证通过
+ERROR 2025-12-24 18:40:09,075 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+INFO 2025-12-24 18:40:09,079 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:40:09,079 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:40:09,079 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:09,080 views 插件创建成功: 1
+ERROR 2025-12-24 18:40:09,082 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+WARNING 2025-12-24 18:40:09,083 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:40:09,083 exception_handler Unhandled exception: ApiResponse.server_error() got an unexpected keyword argument 'data'
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 161, in call
+    return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ApiResponse.server_error() got an unexpected keyword argument 'data'
+ERROR 2025-12-24 18:40:09,084 log Internal Server Error: /api/v1/plugins/1/call/
+INFO 2025-12-24 18:40:27,610 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'P1'}
+INFO 2025-12-24 18:40:27,611 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:40:27,611 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:27,612 views 插件创建成功: 1
+INFO 2025-12-24 18:40:27,619 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:40:27,619 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:40:27,620 services 发现 1 个工具调用
+INFO 2025-12-24 18:40:27,620 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:40:27,620 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:40:27,620 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:40:27,620 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:40:27,630 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:40:27,630 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:40:27,631 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:40:27,639 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:40:27,639 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:40:27,640 services 发现 1 个工具调用
+INFO 2025-12-24 18:40:27,640 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:40:27,640 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:40:27,640 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:40:27,640 views LLM回复成功，长度: 5
+WARNING 2025-12-24 18:40:27,649 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:27,649 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:27,650 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:27,650 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:40:27,650 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:40:27,650 log Not Found: /api/v1/agents/999/chat/
+WARNING 2025-12-24 18:40:27,654 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:27,654 exception_handler Response data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:27,654 exception_handler Processing error data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:27,654 exception_handler Using field errors: message: 该字段是必填项。, all errors: ['message: 该字段是必填项。']
+WARNING 2025-12-24 18:40:27,654 exception_handler Final error response: message=message: 该字段是必填项。, data={'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:27,654 log Bad Request: /api/v1/agents/2/chat/
+INFO 2025-12-24 18:40:27,658 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:40:27,658 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:40:27,673 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:27,673 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:27,673 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:27,673 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:40:27,673 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:40:27,673 log Not Found: /api/v1/agents/999/publish/
+WARNING 2025-12-24 18:40:27,677 log Bad Request: /api/v1/agents/3/publish/
+ERROR 2025-12-24 18:40:28,310 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+ERROR 2025-12-24 18:40:28,328 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+WARNING 2025-12-24 18:40:28,346 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:28,346 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:28,346 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:40:28,347 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:40:28,347 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:40:28,347 log Not Found: /api/v1/knowledge/999/search/
+WARNING 2025-12-24 18:40:28,351 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:28,351 exception_handler Response data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:28,351 exception_handler Processing error data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:28,351 exception_handler Using field errors: query: 该字段是必填项。, all errors: ['query: 该字段是必填项。']
+WARNING 2025-12-24 18:40:28,351 exception_handler Final error response: message=query: 该字段是必填项。, data={'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:40:28,352 log Bad Request: /api/v1/knowledge/2/search/
+WARNING 2025-12-24 18:40:28,353 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:28,353 exception_handler Response data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:40:28,353 exception_handler Processing error data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:40:28,353 exception_handler Using field errors: top_k: 请确保该值小于或者等于 20。, all errors: ['top_k: 请确保该值小于或者等于 20。']
+WARNING 2025-12-24 18:40:28,353 exception_handler Final error response: message=top_k: 请确保该值小于或者等于 20。, data={'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:40:28,353 log Bad Request: /api/v1/knowledge/2/search/
+ERROR 2025-12-24 18:40:28,695 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:40:28,698 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:40:28,699 services OpenAI Embedding API调用失败: bad
+INFO 2025-12-24 18:40:28,701 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:40:28,706 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:40:28,707 services 发现 1 个工具调用
+INFO 2025-12-24 18:40:28,707 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:40:28,707 services 准备调用插件API: tool1 -> http://fake, 方法: GET
+ERROR 2025-12-24 18:40:31,431 services 插件调用失败: tool1, 错误: HTTPConnectionPool(host='fake', port=80): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPConnection(host='fake', port=80): Failed to resolve 'fake' ([Errno 11001] getaddrinfo failed)"))
+INFO 2025-12-24 18:40:31,436 services 调用火山引擎API: model=demo, messages_count=1
+ERROR 2025-12-24 18:40:31,439 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+INFO 2025-12-24 18:40:31,442 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:40:31,442 services 发现 1 个工具调用
+INFO 2025-12-24 18:40:31,442 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:40:31,442 services 准备调用插件API: tool1 -> http://fake/tool, 方法: GET
+ERROR 2025-12-24 18:40:31,442 services 插件调用失败: tool1, 错误: test_volcano_chat_tool_call_http_error_returns_error.<locals>.fake_get() got an unexpected keyword argument 'params'
+INFO 2025-12-24 18:40:31,448 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'Demo'}
+INFO 2025-12-24 18:40:31,448 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:40:31,448 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:31,449 views 插件创建成功: 2
+INFO 2025-12-24 18:40:31,454 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:40:31,454 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:40:31,454 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:31,454 views 插件创建成功: 3
+ERROR 2025-12-24 18:40:31,456 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+WARNING 2025-12-24 18:40:31,458 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:40:31,458 exception_handler Unhandled exception: ApiResponse.server_error() got an unexpected keyword argument 'data'
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 161, in call
+    return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ApiResponse.server_error() got an unexpected keyword argument 'data'
+ERROR 2025-12-24 18:40:31,459 log Internal Server Error: /api/v1/plugins/3/call/
+INFO 2025-12-24 18:40:31,462 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:40:31,463 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:40:31,463 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:31,463 views 插件创建成功: 4
+INFO 2025-12-24 18:40:31,475 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:40:31,476 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:40:31,476 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:31,476 views 插件创建成功: 5
+INFO 2025-12-24 18:40:31,493 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:40:31,493 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:40:31,493 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:40:31,493 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:40:31,493 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:31,494 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:31,494 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:31,494 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:31,494 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:40:31,494 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:40:31,495 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:31,497 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:40:31,497 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:40:31,497 serializers OpenAPI规范缺少必需字段: paths
+WARNING 2025-12-24 18:40:31,497 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+ERROR 2025-12-24 18:40:31,497 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:31,498 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:31,498 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:31,498 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:31,498 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: paths, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: paths']
+WARNING 2025-12-24 18:40:31,498 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: paths, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:40:31,498 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:31,501 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}}
+INFO 2025-12-24 18:40:31,501 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}
+WARNING 2025-12-24 18:40:31,501 serializers OpenAPI规范中的servers[0].url字段为空，servers[0]: {}
+WARNING 2025-12-24 18:40:31,501 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+ERROR 2025-12-24 18:40:31,501 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:31,502 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:40:31,502 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:31,502 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:31,502 exception_handler Using field errors: openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, all errors: ['openapi_spec: OpenAPI规范中的servers[0].url字段不能为空']
+WARNING 2025-12-24 18:40:31,502 exception_handler Final error response: message=openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:40:31,502 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:40:31,505 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:40:31,505 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:40:31,505 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:40:31,506 views 插件创建成功: 6
+INFO 2025-12-24 18:40:31,515 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:40:31,515 serializers OpenAPI 规范验证通过
+ERROR 2025-12-24 18:40:31,530 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+INFO 2025-12-24 18:40:31,539 services 开始执行工作流 1，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:40:31,540 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:40:31,540 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:40:31,540 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'route', 'intent_name': 'Route', 'intent_reason': None}, 'http1': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/ok', 'method': 'GET'}, 'kb': {'results': [{'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}], 'total': 1, 'kb_id': 1, 'query': 'hello', 'top_result': {'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}, 'top_content': 'd1', 'top_similarity': 0.8, 'combined_content': '【来源：未知来源】\nd1'}}
+INFO 2025-12-24 18:40:31,541 services 工作流 1 执行完成，状态: completed
+INFO 2025-12-24 18:40:31,548 services 开始执行工作流 2，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:40:31,548 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:40:31,549 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:40:31,550 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'a', 'intent_name': 'A', 'intent_reason': 'match'}, 'http': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/data', 'method': 'GET'}, 'kb': {'results': [{'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}], 'total': 1, 'kb_id': 1, 'query': 'A', 'top_result': {'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}, 'top_content': 'doc', 'top_similarity': 0.9, 'combined_content': '【来源：未知来源】\ndoc'}}
+INFO 2025-12-24 18:40:31,550 services 工作流 2 执行完成，状态: completed
+INFO 2025-12-24 18:40:31,555 services 开始执行工作流 3，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:40:31,556 services HTTP节点执行失败（已重试0次）: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:40:31,557 services 节点 http(http) 执行失败: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:40:31,559 log Internal Server Error: /api/v1/workflows/3/execute/
+ERROR 2025-12-24 18:40:31,569 log Internal Server Error: /api/v1/workflows/5/execute/
+INFO 2025-12-24 18:40:31,581 services 开始执行工作流 7，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:40:31,581 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:40:31,582 log Internal Server Error: /api/v1/workflows/7/execute/
+ERROR 2025-12-24 18:40:31,590 log Internal Server Error: /api/v1/workflows/8/execute/
+INFO 2025-12-24 18:40:31,611 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+WARNING 2025-12-24 18:40:31,614 services HTTP请求失败: timeout，正在重试 (1/1)
+INFO 2025-12-24 18:40:32,615 services HTTP节点执行成功，状态码: 200, 尝试次数: 2/2
+INFO 2025-12-24 18:40:32,617 services 知识库检索完成，找到 1 个结果
+ERROR 2025-12-24 18:42:13,471 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+ERROR 2025-12-24 18:42:13,493 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+INFO 2025-12-24 18:42:36,802 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'P1'}
+INFO 2025-12-24 18:42:36,802 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'P1', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:42:36,803 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:36,804 views 插件创建成功: 1
+INFO 2025-12-24 18:42:36,812 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:42:36,812 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:42:36,812 services 发现 1 个工具调用
+INFO 2025-12-24 18:42:36,812 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:42:36,812 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:42:36,812 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:42:36,813 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:42:36,822 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:42:36,822 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:42:36,822 views LLM回复成功，长度: 5
+INFO 2025-12-24 18:42:36,830 views 智能体 A1 开始对话，provider=volcano, model=demo
+INFO 2025-12-24 18:42:36,831 services 调用火山引擎API: model=demo, messages_count=2
+INFO 2025-12-24 18:42:36,831 services 发现 1 个工具调用
+INFO 2025-12-24 18:42:36,831 services 工具调用 1: helloOp 参数: {}
+INFO 2025-12-24 18:42:36,831 services 准备调用插件API: helloOp -> https://api.example.com/hello, 方法: GET
+INFO 2025-12-24 18:42:36,831 services 插件API返回结果: {"msg": "hi"}
+INFO 2025-12-24 18:42:36,831 views LLM回复成功，长度: 5
+WARNING 2025-12-24 18:42:36,839 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:36,839 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:36,839 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:36,839 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:42:36,839 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:42:36,840 log Not Found: /api/v1/agents/999/chat/
+WARNING 2025-12-24 18:42:36,843 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:36,844 exception_handler Response data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:36,844 exception_handler Processing error data: {'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:36,844 exception_handler Using field errors: message: 该字段是必填项。, all errors: ['message: 该字段是必填项。']
+WARNING 2025-12-24 18:42:36,844 exception_handler Final error response: message=message: 该字段是必填项。, data={'message': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:36,844 log Bad Request: /api/v1/agents/2/chat/
+INFO 2025-12-24 18:42:36,848 views 智能体 Agent A 开始对话，provider=volcano, model=demo-model
+INFO 2025-12-24 18:42:36,848 views LLM回复成功，长度: 10
+WARNING 2025-12-24 18:42:36,861 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:36,861 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:36,861 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:36,861 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:42:36,861 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:42:36,862 log Not Found: /api/v1/agents/999/publish/
+WARNING 2025-12-24 18:42:36,866 log Bad Request: /api/v1/agents/3/publish/
+ERROR 2025-12-24 18:42:37,055 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+ERROR 2025-12-24 18:42:37,075 log Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\utils\deprecation.py", line 133, in __call__
+    response = self.process_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+           ^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\django\http\request.py", line 150, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'evil.com'. You may need to add 'evil.com' to ALLOWED_HOSTS.
+WARNING 2025-12-24 18:42:37,094 exception_handler Exception handler called: Http404, response: <Response status_code=404, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:37,094 exception_handler Response data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:37,095 exception_handler Processing error data: {'detail': ErrorDetail(string='未找到。', code='not_found')}
+WARNING 2025-12-24 18:42:37,095 exception_handler Using detail message: 未找到。
+WARNING 2025-12-24 18:42:37,095 exception_handler Final error response: message=未找到。, data=None
+WARNING 2025-12-24 18:42:37,095 log Not Found: /api/v1/knowledge/999/search/
+WARNING 2025-12-24 18:42:37,100 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:37,100 exception_handler Response data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:37,100 exception_handler Processing error data: {'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:37,100 exception_handler Using field errors: query: 该字段是必填项。, all errors: ['query: 该字段是必填项。']
+WARNING 2025-12-24 18:42:37,100 exception_handler Final error response: message=query: 该字段是必填项。, data={'query': [ErrorDetail(string='该字段是必填项。', code='required')]}
+WARNING 2025-12-24 18:42:37,100 log Bad Request: /api/v1/knowledge/2/search/
+WARNING 2025-12-24 18:42:37,101 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:37,102 exception_handler Response data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:42:37,102 exception_handler Processing error data: {'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:42:37,102 exception_handler Using field errors: top_k: 请确保该值小于或者等于 20。, all errors: ['top_k: 请确保该值小于或者等于 20。']
+WARNING 2025-12-24 18:42:37,102 exception_handler Final error response: message=top_k: 请确保该值小于或者等于 20。, data={'top_k': [ErrorDetail(string='请确保该值小于或者等于 20。', code='max_value')]}
+WARNING 2025-12-24 18:42:37,102 log Bad Request: /api/v1/knowledge/2/search/
+ERROR 2025-12-24 18:42:37,445 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:42:37,448 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+ERROR 2025-12-24 18:42:37,448 services OpenAI Embedding API调用失败: bad
+INFO 2025-12-24 18:42:37,452 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:42:37,458 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:42:37,458 services 发现 1 个工具调用
+INFO 2025-12-24 18:42:37,458 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:42:37,458 services 准备调用插件API: tool1 -> http://fake, 方法: GET
+ERROR 2025-12-24 18:42:40,149 services 插件调用失败: tool1, 错误: HTTPConnectionPool(host='fake', port=80): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPConnection(host='fake', port=80): Failed to resolve 'fake' ([Errno 11001] getaddrinfo failed)"))
+INFO 2025-12-24 18:42:40,154 services 调用火山引擎API: model=demo, messages_count=1
+ERROR 2025-12-24 18:42:40,157 services OpenAI客户端初始化失败: Client.__init__() got an unexpected keyword argument 'proxies'
+INFO 2025-12-24 18:42:40,160 services 调用火山引擎API: model=demo, messages_count=1
+INFO 2025-12-24 18:42:40,161 services 发现 1 个工具调用
+INFO 2025-12-24 18:42:40,161 services 工具调用 1: tool1 参数: {}
+INFO 2025-12-24 18:42:40,161 services 准备调用插件API: tool1 -> http://fake/tool, 方法: GET
+ERROR 2025-12-24 18:42:40,161 services 插件调用失败: tool1, 错误: test_volcano_chat_tool_call_http_error_returns_error.<locals>.fake_get() got an unexpected keyword argument 'params'
+INFO 2025-12-24 18:42:40,168 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled', 'name': 'Demo'}
+INFO 2025-12-24 18:42:40,169 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:42:40,169 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:40,169 views 插件创建成功: 2
+INFO 2025-12-24 18:42:40,176 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}, 'status': 'enabled'}
+INFO 2025-12-24 18:42:40,176 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Demo', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp'}}}}
+INFO 2025-12-24 18:42:40,177 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:40,177 views 插件创建成功: 3
+ERROR 2025-12-24 18:42:40,179 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+WARNING 2025-12-24 18:42:40,181 exception_handler Exception handler called: TypeError, response: None
+ERROR 2025-12-24 18:42:40,182 exception_handler Unhandled exception: ApiResponse.server_error() got an unexpected keyword argument 'data'
+Traceback (most recent call last):
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 161, in call
+    return ApiResponse.server_error(message=result.get('error', '调用失败'), data=result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: ApiResponse.server_error() got an unexpected keyword argument 'data'
+ERROR 2025-12-24 18:42:40,183 log Internal Server Error: /api/v1/plugins/3/call/
+INFO 2025-12-24 18:42:40,186 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:42:40,186 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello': {'get': {'operationId': 'helloOp', 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:42:40,186 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:40,187 views 插件创建成功: 4
+INFO 2025-12-24 18:42:40,201 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}}
+INFO 2025-12-24 18:42:40,201 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Hello API'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {'/hello/{name}': {'get': {'operationId': 'helloOp', 'parameters': [{'in': 'path', 'name': 'name', 'schema': {'type': 'string'}, 'required': True}], 'description': 'Say hello'}}}}
+INFO 2025-12-24 18:42:40,202 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:40,202 views 插件创建成功: 5
+INFO 2025-12-24 18:42:40,219 views 创建插件请求，接收到的数据: {'openapi_spec': {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:42:40,219 serializers 验证 OpenAPI 规范，接收到的数据: {'info': {'title': 'Bad'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:42:40,220 serializers OpenAPI规范缺少必需字段: openapi
+WARNING 2025-12-24 18:42:40,220 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+ERROR 2025-12-24 18:42:40,220 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:42:40,221 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:40,221 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:42:40,221 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:42:40,222 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: openapi, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: openapi']
+WARNING 2025-12-24 18:42:40,222 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: openapi, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: openapi', code='invalid')]}
+WARNING 2025-12-24 18:42:40,222 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:42:40,225 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}}
+INFO 2025-12-24 18:42:40,225 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{'url': 'https://api.example.com'}]}
+WARNING 2025-12-24 18:42:40,225 serializers OpenAPI规范缺少必需字段: paths
+WARNING 2025-12-24 18:42:40,225 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+ERROR 2025-12-24 18:42:40,225 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:42:40,226 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:40,226 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:42:40,226 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:42:40,226 exception_handler Using field errors: openapi_spec: OpenAPI规范缺少必需字段: paths, all errors: ['openapi_spec: OpenAPI规范缺少必需字段: paths']
+WARNING 2025-12-24 18:42:40,226 exception_handler Final error response: message=openapi_spec: OpenAPI规范缺少必需字段: paths, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范缺少必需字段: paths', code='invalid')]}
+WARNING 2025-12-24 18:42:40,226 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:42:40,229 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}}
+INFO 2025-12-24 18:42:40,230 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Bad', 'description': 'd'}, 'servers': [{}], 'paths': {}}
+WARNING 2025-12-24 18:42:40,230 serializers OpenAPI规范中的servers[0].url字段为空，servers[0]: {}
+WARNING 2025-12-24 18:42:40,230 views 序列化器验证失败: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+ERROR 2025-12-24 18:42:40,230 views 创建插件时发生异常: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\views.py", line 59, in create
+    serializer.is_valid(raise_exception=True)
+  File "D:\anaconda3\envs\Aiagent\Lib\site-packages\rest_framework\serializers.py", line 235, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:42:40,230 exception_handler Exception handler called: ValidationError, response: <Response status_code=400, "text/html; charset=utf-8">
+WARNING 2025-12-24 18:42:40,230 exception_handler Response data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:42:40,231 exception_handler Processing error data: {'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:42:40,231 exception_handler Using field errors: openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, all errors: ['openapi_spec: OpenAPI规范中的servers[0].url字段不能为空']
+WARNING 2025-12-24 18:42:40,231 exception_handler Final error response: message=openapi_spec: OpenAPI规范中的servers[0].url字段不能为空, data={'openapi_spec': [ErrorDetail(string='OpenAPI规范中的servers[0].url字段不能为空', code='invalid')]}
+WARNING 2025-12-24 18:42:40,231 log Bad Request: /api/v1/plugins/
+INFO 2025-12-24 18:42:40,233 views 创建插件请求，接收到的数据: {'openapi_spec': {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}}
+INFO 2025-12-24 18:42:40,233 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'Weather API', 'description': 'desc'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:42:40,234 serializers OpenAPI 规范验证通过
+INFO 2025-12-24 18:42:40,234 views 插件创建成功: 6
+INFO 2025-12-24 18:42:40,244 serializers 验证 OpenAPI 规范，接收到的数据: {'openapi': '3.0.0', 'info': {'title': 'NewTitle'}, 'servers': [{'url': 'https://api.example.com'}], 'paths': {}}
+INFO 2025-12-24 18:42:40,245 serializers OpenAPI 规范验证通过
+ERROR 2025-12-24 18:42:40,259 services 调用插件操作失败: bad http
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\plugin\services.py", line 302, in call_plugin_operation
+    response = requests.get(url, params=query_params, timeout=30)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: bad http
+INFO 2025-12-24 18:42:40,268 services 开始执行工作流 1，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:42:40,269 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:42:40,269 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:42:40,269 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'route', 'intent_name': 'Route', 'intent_reason': None}, 'http1': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/ok', 'method': 'GET'}, 'kb': {'results': [{'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}], 'total': 1, 'kb_id': 1, 'query': 'hello', 'top_result': {'id': '0', 'content': 'd1', 'metadata': {}, 'score': 0.8}, 'top_content': 'd1', 'top_similarity': 0.8, 'combined_content': '【来源：未知来源】\nd1'}}
+INFO 2025-12-24 18:42:40,270 services 工作流 1 执行完成，状态: completed
+INFO 2025-12-24 18:42:40,278 services 开始执行工作流 2，输入: {"user_input": "hi"}
+INFO 2025-12-24 18:42:40,279 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+INFO 2025-12-24 18:42:40,279 services 知识库检索完成，找到 1 个结果
+INFO 2025-12-24 18:42:40,279 services 结束节点输出(默认): {'user_input': 'hi', 'start': {'user_input': 'hi'}, 'intent': {'intent_id': 'a', 'intent_name': 'A', 'intent_reason': 'match'}, 'http': {'status_code': 200, 'headers': {}, 'body': {'ok': True}, 'data': {'ok': True}, 'status': 200, 'success': True, 'url': 'https://api.example.com/data', 'method': 'GET'}, 'kb': {'results': [{'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}], 'total': 1, 'kb_id': 1, 'query': 'A', 'top_result': {'id': '10', 'content': 'doc', 'metadata': {'doc_id': 10}, 'score': 0.9}, 'top_content': 'doc', 'top_similarity': 0.9, 'combined_content': '【来源：未知来源】\ndoc'}}
+INFO 2025-12-24 18:42:40,280 services 工作流 2 执行完成，状态: completed
+INFO 2025-12-24 18:42:40,286 services 开始执行工作流 3，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:42:40,287 services HTTP节点执行失败（已重试0次）: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:42:40,289 services 节点 http(http) 执行失败: http boom
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 652, in _execute_http_node
+    response = requests.request(**request_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\anaconda3\envs\Aiagent\Lib\unittest\mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\tests\integration\test_workflow_complex_flow.py", line 91, in http_fail
+    raise Exception("http boom")
+Exception: http boom
+ERROR 2025-12-24 18:42:40,291 log Internal Server Error: /api/v1/workflows/3/execute/
+ERROR 2025-12-24 18:42:40,306 log Internal Server Error: /api/v1/workflows/5/execute/
+INFO 2025-12-24 18:42:40,318 services 开始执行工作流 7，输入: {"user_input": "hi"}
+ERROR 2025-12-24 18:42:40,318 services 节点 http1(http) 执行失败: HTTP节点必须配置URL
+Traceback (most recent call last):
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 347, in execute
+    node_result = self._execute_node(node)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 437, in _execute_node
+    return self._execute_http_node(cfg)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\硕士阶段\研一上\互联网小组\AnyWay\backend\apps\workflow\services.py", line 599, in _execute_http_node
+    raise WorkflowExecutionError("HTTP节点必须配置URL")
+apps.workflow.services.WorkflowExecutionError: HTTP节点必须配置URL
+ERROR 2025-12-24 18:42:40,319 log Internal Server Error: /api/v1/workflows/7/execute/
+ERROR 2025-12-24 18:42:40,328 log Internal Server Error: /api/v1/workflows/8/execute/
+INFO 2025-12-24 18:42:40,353 services HTTP节点执行成功，状态码: 200, 尝试次数: 1/1
+WARNING 2025-12-24 18:42:40,356 services HTTP请求失败: timeout，正在重试 (1/1)
+INFO 2025-12-24 18:42:41,356 services HTTP节点执行成功，状态码: 200, 尝试次数: 2/2
+INFO 2025-12-24 18:42:41,358 services 知识库检索完成，找到 1 个结果

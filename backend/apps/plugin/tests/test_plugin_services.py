@@ -1,10 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from requests.exceptions import RequestException
 
 from apps.plugin.models import Plugin
-from apps.plugin.services import PluginService, build_tools_from_openapi, build_api_map
+from apps.plugin.services import PluginService, build_api_map
 
 
 def make_plugin(status='enabled', spec=None):
@@ -12,12 +11,14 @@ def make_plugin(status='enabled', spec=None):
 
 
 def test_parse_openapi_to_functions_filters_disabled():
+    # 过滤禁用插件
     disabled = make_plugin(status='disabled', spec={'paths': {}, 'servers': []})
     funcs = PluginService.parse_openapi_to_functions([disabled])
     assert funcs == []
 
 
 def test_parse_openapi_to_functions_basic():
+    # 基本 openapi 解析为工具函数
     spec = {
         'paths': {
             '/weather': {
@@ -42,6 +43,7 @@ def test_parse_openapi_to_functions_basic():
 
 
 def test_build_api_map():
+    # 构建 operationId -> url/method 映射
     spec = {
         'servers': [{'url': 'https://api.example.com'}],
         'paths': {
@@ -56,6 +58,7 @@ def test_build_api_map():
 
 
 def test_call_function_success_json():
+    # call_function 成功返回 JSON
     spec = {
         'paths': {
             '/hello': {
@@ -83,17 +86,20 @@ def test_call_function_success_json():
 
 
 def test_call_function_not_found():
+    # 未找到 operationId 的兜底
     result = PluginService.call_function('missing', {}, [])
     assert '不存在' in result['error']
 
 
 def test_format_function_result_handles_error_and_dict():
+    # 格式化错误/成功返回
     assert PluginService.format_function_result({'success': False, 'error': 'boom'}) == '调用失败: boom'
     text = PluginService.format_function_result({'success': True, 'data': {'a': 1}})
     assert '"a": 1' in text
 
 
 def test_call_plugin_operation_success():
+    # 通过 plugin 实例执行 operationId 成功
     spec = {
         'servers': [{'url': 'https://api.example.com'}],
         'paths': {
@@ -119,12 +125,14 @@ def test_call_plugin_operation_success():
 
 
 def test_call_plugin_operation_missing():
+    # operationId 不存在的兜底
     plugin = make_plugin(spec={'paths': {}, 'servers': []})
     result = PluginService.call_plugin_operation(plugin, 'missing', {})
     assert '不存在' in result['error']
 
 
 def test_call_function_http_error():
+    # HTTP 调用异常兜底
     spec = {
         'paths': {'/hello': {'get': {'operationId': 'helloOp'}}},
         'servers': [{'url': 'https://api.example.com'}]
@@ -136,3 +144,19 @@ def test_call_function_http_error():
         result = PluginService.call_function('helloOp', {}, funcs)
     assert result['success'] is False
     assert 'boom' in result['error']
+
+
+def test_call_plugin_operation_propagates_http_error():
+    # call_plugin_operation 返回 HTTP 异常应带 error 消息
+    plugin = make_plugin(spec={
+        'servers': [{'url': 'https://api.example.com'}],
+        'paths': {
+            '/hello': {
+                'get': {'operationId': 'helloOp'}
+            }
+        }
+    })
+    with patch('requests.get', side_effect=RequestException('bad http')):
+        result = PluginService.call_plugin_operation(plugin, 'helloOp', {'name': 'bob'})
+    assert result['success'] is False
+    assert 'bad http' in result.get('error', '')

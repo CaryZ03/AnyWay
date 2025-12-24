@@ -12,6 +12,7 @@ TEST_MEDIA_ROOT = tempfile.mkdtemp()
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'], MEDIA_ROOT=TEST_MEDIA_ROOT)
 class KnowledgeApiTests(APITestCase):
+    # 覆盖知识库 CRUD、上传、搜索占位
     @classmethod
     def setUpTestData(cls):
         cls.kb = KnowledgeBase.objects.create(name='KB1', description='desc')
@@ -24,6 +25,7 @@ class KnowledgeApiTests(APITestCase):
             super().tearDownClass()
 
     def test_list_knowledge_bases_empty_or_existing(self):
+        # 列表返回已存在的知识库
         resp = self.client.get('/api/v1/knowledge/')
         assert resp.status_code == 200
         data = resp.json().get('data')
@@ -31,6 +33,7 @@ class KnowledgeApiTests(APITestCase):
         assert any(item['id'] == self.kb.id for item in data)
 
     def test_create_knowledge_base(self):
+        # 创建知识库成功路径
         resp = self.client.post('/api/v1/knowledge/', {'name': 'KB2', 'description': 'd'}, format='json')
         assert resp.status_code == 201
         body = resp.json()
@@ -38,6 +41,7 @@ class KnowledgeApiTests(APITestCase):
         assert KnowledgeBase.objects.filter(name='KB2', deleted=False).exists()
 
     def test_retrieve_and_delete(self):
+        # 详情与逻辑删除
         resp = self.client.get(f'/api/v1/knowledge/{self.kb.id}/')
         assert resp.status_code == 200
         assert resp.json().get('data', {}).get('id') == self.kb.id
@@ -48,6 +52,7 @@ class KnowledgeApiTests(APITestCase):
         assert self.kb.deleted is True
 
     def test_upload_document_and_list(self):
+        # 上传文档并列表验证
         content = b'hello world'
         upload = SimpleUploadedFile('note.txt', content, content_type='text/plain')
         resp = self.client.post(
@@ -66,6 +71,7 @@ class KnowledgeApiTests(APITestCase):
         assert any(d['id'] == doc_id for d in docs)
 
     def test_search_returns_empty_list(self):
+        # 搜索占位，当前返回空列表
         resp = self.client.post(
             f'/api/v1/knowledge/{self.kb.id}/search/',
             {'query': 'test', 'top_k': 3},

@@ -26,6 +26,7 @@ class PluginApiTests(APITestCase):
             super().tearDownClass()
 
     def test_register_plugin_success(self):
+        # 注册插件成功路径
         resp = self.client.post('/api/v1/plugins/', {"openapi_spec": VALID_SPEC}, format='json')
         assert resp.status_code == 201
         body = resp.json()
@@ -33,6 +34,7 @@ class PluginApiTests(APITestCase):
         assert Plugin.objects.filter(name='Weather API', base_url='https://api.example.com', deleted=False).exists()
 
     def test_register_plugin_missing_required_field(self):
+        # 缺少 openapi/paths 等字段的校验
         bad_spec = {
             "info": {"title": "Bad"},
             "servers": [{"url": "https://api.example.com"}],
@@ -44,7 +46,36 @@ class PluginApiTests(APITestCase):
         assert body.get('success') is False
         assert 'openapi' in body.get('message', '') or 'paths' in body.get('message', '')
 
+    def test_register_plugin_rejects_missing_paths(self):
+        # paths 缺失应 400
+        bad_spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "Bad", "description": "d"},
+            "servers": [{"url": "https://api.example.com"}],
+            # 缺少 paths
+        }
+        resp = self.client.post('/api/v1/plugins/', {"openapi_spec": bad_spec}, format='json')
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body.get('success') is False
+        assert 'paths' in body.get('message', '')
+
+    def test_register_plugin_rejects_missing_server_url(self):
+        # servers[0].url 缺失应 400
+        bad_spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "Bad", "description": "d"},
+            "servers": [{}],
+            "paths": {},
+        }
+        resp = self.client.post('/api/v1/plugins/', {"openapi_spec": bad_spec}, format='json')
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body.get('success') is False
+        assert 'servers' in body.get('message', '')
+
     def test_list_plugins_and_retrieve(self):
+        # 列表与详情
         plugin = Plugin.objects.create(
             name='Demo',
             description='d',
@@ -63,6 +94,7 @@ class PluginApiTests(APITestCase):
         assert retrieve_resp.json().get('data', {}).get('id') == plugin.id
 
     def test_update_plugin(self):
+        # 更新 openapi spec 并同步 name
         plugin = Plugin.objects.create(
             name='Demo',
             description='d',
@@ -78,6 +110,7 @@ class PluginApiTests(APITestCase):
         assert plugin.name == 'NewTitle'
 
     def test_enable_disable(self):
+        # 启用/停用切换
         plugin = Plugin.objects.create(
             name='Demo',
             description='d',
@@ -97,6 +130,7 @@ class PluginApiTests(APITestCase):
         assert plugin.status == 'disabled'
 
     def test_soft_delete(self):
+        # 逻辑删除后列表不再包含
         plugin = Plugin.objects.create(
             name='Demo',
             description='d',
@@ -112,4 +146,3 @@ class PluginApiTests(APITestCase):
         list_resp = self.client.get('/api/v1/plugins/')
         data = list_resp.json().get('data')
         assert all(item['id'] != plugin.id for item in data)
-

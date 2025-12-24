@@ -11,6 +11,7 @@ pytestmark = pytest.mark.django_db
 
 @override_settings(ALLOWED_HOSTS=['testserver', 'localhost', '127.0.0.1'])
 def test_knowledge_document_flow():
+    # 覆盖知识库端到端：创建→上传→列表→搜索占位
     client = APIClient()
     tmpdir = tempfile.mkdtemp()
     try:
@@ -42,4 +43,3 @@ def test_knowledge_document_flow():
 
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
-

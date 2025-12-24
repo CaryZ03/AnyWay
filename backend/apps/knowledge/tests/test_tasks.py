@@ -2,6 +2,7 @@ from apps.knowledge.tasks import split_text
 
 
 def test_split_text_basic_chunks():
+    # 长文本按 chunk_size 切分
     text = "a" * 1200
     chunks = split_text(text, chunk_size=500, overlap=0)
     # 1200 chars -> 3 chunks (500, 500, 200)
@@ -12,6 +13,7 @@ def test_split_text_basic_chunks():
 
 
 def test_split_text_with_overlap():
+    # 带重叠窗口的切分
     text = "abcdefg" * 100  # 700 chars
     chunks = split_text(text, chunk_size=200, overlap=50)
     # Expect sliding window: starts at 0,150,300,450,600
