@@ -167,7 +167,11 @@ const sendMessage = async () => {
     }
 
     // 使用 chat API，支持未发布的智能体，支持插件调用
-    const response = await agentApi.chat(props.agentId, finalMessage)
+    // 将原始用户消息保存到 context 中，以便历史记录显示正确的用户消息
+    const context: Record<string, any> = {
+      original_user_message: userMessage
+    }
+    const response = await agentApi.chat(props.agentId, finalMessage, context)
     
     // 保存对话记录
     conversationHistory.value.push(response)
@@ -221,9 +225,11 @@ const loadHistory = async () => {
     // 将历史消息转换为消息列表格式
     messages.value = []
     history.forEach((conv) => {
+      // 从 context 中获取原始用户消息，如果没有则使用 user_message
+      const displayUserMessage = conv.context?.original_user_message || conv.user_message
       messages.value.push({
         role: 'user',
-        content: conv.user_message,
+        content: displayUserMessage,
         timestamp: conv.created_at,
         conversationId: conv.id
       })
