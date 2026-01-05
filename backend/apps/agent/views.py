@@ -231,8 +231,12 @@ class AgentViewSet(viewsets.ModelViewSet):
                 )
                 engine = WorkflowEngine()
                 output = engine.execute(workflow, {'user_input': user_message}, execution)
+                # 工作流输出应该总是包含 answer 字段
                 if isinstance(output, dict):
-                    assistant_message = str(output.get('answer') or output)
+                    assistant_message = output.get('answer', '')
+                    if not assistant_message:
+                        # 如果 answer 为空，尝试从 output 字段获取
+                        assistant_message = output.get('output', '工作流执行完成，但未生成有效回答')
                 else:
                     assistant_message = str(output)
             except Workflow.DoesNotExist:

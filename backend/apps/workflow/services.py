@@ -230,6 +230,30 @@ class WorkflowEngine:
         self.context: Dict[str, Any] = {}
         self.node_status: Dict[str, Any] = {}
 
+    def _extract_answer_from_context(self) -> str:
+        """
+        从上下文中提取 answer 字段。
+        优先查找全局 answer，其次查找 llm 节点的 answer。
+        """
+        # 优先查找全局 answer
+        if "answer" in self.context:
+            answer = self.context.get("answer")
+            if isinstance(answer, str):
+                return answer
+            elif isinstance(answer, dict) and "answer" in answer:
+                return str(answer.get("answer"))
+            else:
+                return str(answer)
+        
+        # 查找所有 llm 节点的 answer
+        for key, value in self.context.items():
+            if isinstance(value, dict) and "answer" in value:
+                answer = value.get("answer")
+                if isinstance(answer, str) and answer.strip():
+                    return answer
+        
+        return ""
+
     def _replace_variables(self, text: str) -> str:
         """
         变量替换，支持以下格式：
@@ -386,18 +410,31 @@ class WorkflowEngine:
                 end_node_id = n.id
                 break
         
+        final_output: Dict[str, Any] = {}
+        
         if end_node_id and end_node_id in self.context:
             # 使用 end 节点的输出作为最终输出
-            final_output = self.context[end_node_id]
-            # 确保是字典类型
-            if not isinstance(final_output, dict):
-                final_output = {"output": final_output}
-        elif "answer" in self.context:
-            # 如果没有end节点输出，但存在answer字段，使用answer
-            final_output: Dict[str, Any] = {"answer": self.context.get("answer")}
+            end_output = self.context[end_node_id]
+            if isinstance(end_output, dict):
+                # 如果 end 节点返回的是字典，优先提取 answer 字段
+                if "answer" in end_output:
+                    final_output = {"answer": end_output.get("answer")}
+                elif "output" in end_output:
+                    final_output = {"answer": end_output.get("output")}
+                else:
+                    # 如果 end 节点输出没有 answer，尝试从上下文中查找
+                    final_output = {"answer": self._extract_answer_from_context()}
+            else:
+                # end 节点返回的是字符串或其他类型
+                final_output = {"answer": str(end_output)}
         else:
-            # 没有 end 节点输出和 answer 时，返回完整上下文（便于调试）
-            final_output = dict(self.context)
+            # 没有 end 节点输出，尝试从上下文中提取 answer
+            answer = self._extract_answer_from_context()
+            if answer:
+                final_output = {"answer": answer}
+            else:
+                # 如果确实没有 answer，返回错误提示（而不是完整上下文）
+                final_output = {"answer": "工作流执行完成，但未生成有效回答"}
 
         execution.output_data = final_output
         execution.node_status = self.node_status
@@ -897,7 +934,6 @@ class WorkflowEngine:
         - 优先使用 outputContent 配置（支持变量替换）
         - 如果 outputContent 存在，执行变量替换后返回
         - 否则默认返回上下文中的 answer 字段
-        - 若不存在，则返回完整上下文（用于调试）。
         """
         output_content = config.get("outputContent") or config.get("output_content")
         
@@ -911,18 +947,26 @@ class WorkflowEngine:
             try:
                 if (final_content.startswith("{") and final_content.endswith("}")) or \
                    (final_content.startswith("[") and final_content.endswith("]")):
-                    return json.loads(final_content)
+                    parsed = json.loads(final_content)
+                    # 如果解析后是字典，确保包含 answer 字段
+                    if isinstance(parsed, dict):
+                        if "answer" not in parsed:
+                            parsed["answer"] = str(parsed)
+                        return parsed
+                    else:
+                        return {"answer": str(parsed)}
             except json.JSONDecodeError:
                 pass
                 
-            return {"output": final_content}
+            return {"answer": final_content}
         
-        # 默认逻辑：优先返回 answer 字段
-        if "answer" in self.context:
-            return {"answer": self.context.get("answer")}
+        # 默认逻辑：从上下文中提取 answer
+        answer = self._extract_answer_from_context()
+        if answer:
+            return {"answer": answer}
         
-        # 如果没有answer，返回完整上下文（用于调试）
-        logger.info("结束节点输出(默认): %s", self.context)
-        return dict(self.context)
+        # 如果确实没有 answer，返回提示信息
+        logger.warning("结束节点：上下文中未找到 answer 字段")
+        return {"answer": "工作流执行完成，但未生成有效回答"}
 
 
