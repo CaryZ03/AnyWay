@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "KnowledgeBase API",
+    "_postman_id": "b84b8f57-6e3a-4c2e-99cc-98b842849f00",
+    "description": "API collection for Knowledge Base Server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create Knowledge Base",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": 1,\n  \"name\": \"Test KB\",\n  \"description\": \"Demo Knowledge Base\"\n}"
+        },
+        "url": {
+          "raw": "https://kenbers.cyou/kb/create",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "create"]
+        }
+      }
+    },
+    {
+      "name": "2. List Knowledge Bases",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "https://kenbers.cyou/kb/list?user_id=1",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "list"],
+          "query": [
+            { "key": "user_id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. List Documents in KB",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "https://kenbers.cyou/kb/documents?user_id=1&knowledge_base_id=1",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "documents"],
+          "query": [
+            { "key": "user_id", "value": "1" },
+            { "key": "knowledge_base_id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Upload Document",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "user_id", "value": "1", "type": "text" },
+            { "key": "knowledge_base_id", "value": "1", "type": "text" },
+            {
+              "key": "file",
+              "type": "file",
+              "src": "/path/to/your/file.txt"
+            }
+          ]
+        },
+        "url": {
+          "raw": "https://kenbers.cyou/kb/upload",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "upload"]
+        }
+      }
+    },
+    {
+      "name": "5. Delete Document",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "https://kenbers.cyou/kb/document/1?user_id=1",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "document", "1"],
+          "query": [
+            { "key": "user_id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Delete Knowledge Base",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "https://kenbers.cyou/kb/delete?user_id=1&knowledge_base_id=1",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "delete"],
+          "query": [
+            { "key": "user_id", "value": "1" },
+            { "key": "knowledge_base_id", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Query Knowledge Base",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": 1,\n  \"knowledge_base_id\": 1,\n  \"query\": \"什么是RAG?\",\n  \"top_k\": 3\n}"
+        },
+        "url": {
+          "raw": "https://kenbers.cyou/kb/query",
+          "protocol": "https",
+          "host": ["kenbers", "cyou"],
+          "path": ["kb", "query"]
+        }
+      }
+    }
+  ]
+}
