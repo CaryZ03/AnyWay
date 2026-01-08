@@ -1,0 +1,242 @@
+{
+	"info": {
+		"_postman_id": "aa33e865-0095-457e-abd1-f2b4352abb2e",
+		"name": "KnowledgeBase API",
+		"description": "API collection for Knowledge Base Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45823875",
+		"_collection_link": "https://henry-9179887.postman.co/workspace/henry's-Workspace~cdfb4ac5-bd2e-427f-8134-8cd768a9615e/collection/45823875-aa33e865-0095-457e-abd1-f2b4352abb2e?action=share&source=collection_link&creator=45823875"
+	},
+	"item": [
+		{
+			"name": "1. 创建知识库",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user_id\": 1,\n  \"name\": \"Test KB\",\n  \"description\": \"Demo Knowledge Base\"\n}"
+				},
+				"url": {
+					"raw": "https://kenbers.cyou/kb/create",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. 查看某用户的所有知识库",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://kenbers.cyou/kb/list?user_id=1",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"list"
+					],
+					"query": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. 查看某个知识库所有文档",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://kenbers.cyou/kb/documents?user_id=1&knowledge_base_id=1",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"documents"
+					],
+					"query": [
+						{
+							"key": "user_id",
+							"value": "1"
+						},
+						{
+							"key": "knowledge_base_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. 上传文档",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "user_id",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "knowledge_base_id",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/path/to/your/file.txt"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://kenbers.cyou/kb/upload",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"upload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. 删除文档",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://kenbers.cyou/kb/document/1?user_id=1",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"document",
+						"1"
+					],
+					"query": [
+						{
+							"key": "user_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6. 删除知识库",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://kenbers.cyou/kb/delete?user_id=1&knowledge_base_id=1",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"delete"
+					],
+					"query": [
+						{
+							"key": "user_id",
+							"value": "1"
+						},
+						{
+							"key": "knowledge_base_id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7. 查询知识库信息",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user_id\": 1,\n  \"knowledge_base_id\": 1,\n  \"query\": \"什么是RAG?\",\n  \"top_k\": 3\n}"
+				},
+				"url": {
+					"raw": "https://kenbers.cyou/kb/query",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"kb",
+						"query"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://kenbers.cyou/health",
+					"protocol": "https",
+					"host": [
+						"kenbers",
+						"cyou"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

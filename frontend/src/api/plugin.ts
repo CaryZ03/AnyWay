@@ -1,8 +1,7 @@
 import request from '@/utils/request'
-import type { Plugin, PluginForm, PluginConfig } from '@/types/plugin'
+import type { Plugin, PluginForm, PluginConfig, OpenAPISpec } from '@/types/plugin'
 import type {
   BackendPlugin,
-  BackendPluginRequest,
 } from '@/types/api'
 
 /**
@@ -15,19 +14,28 @@ import type {
 
 /**
  * 转换后端 Plugin 到前端 Plugin
+ * 注意：列表接口可能不包含 openapi_spec，此时 openapiSpec 为 undefined
  */
 function transformPlugin(backend: BackendPlugin): Plugin {
-  const openapiSpec = typeof backend.openapi_spec === 'string'
-    ? JSON.parse(backend.openapi_spec)
-    : backend.openapi_spec
+  // 处理 openapi_spec（可能不存在）
+  let openapiSpec: string | OpenAPISpec | undefined = undefined
+  if (backend.openapi_spec !== undefined && backend.openapi_spec !== null) {
+    openapiSpec = typeof backend.openapi_spec === 'string'
+      ? JSON.parse(backend.openapi_spec)
+      : backend.openapi_spec
+  }
 
-  const authConfig = typeof backend.auth_config === 'string'
-    ? JSON.parse(backend.auth_config)
-    : backend.auth_config
+  // 处理 auth_config（可能不存在）
+  let authConfig: any = {}
+  if (backend.auth_config !== undefined && backend.auth_config !== null) {
+    authConfig = typeof backend.auth_config === 'string'
+      ? JSON.parse(backend.auth_config)
+      : backend.auth_config
+  }
 
   // 合并 base_url 和 auth_config 到 config
   const config: PluginConfig = {
-    baseUrl: backend.base_url,
+    baseUrl: backend.base_url || '',
     ...authConfig,
   }
 
@@ -36,7 +44,7 @@ function transformPlugin(backend: BackendPlugin): Plugin {
     name: backend.name,
     description: backend.description,
     type: 'custom', // 后端没有 type 字段，默认为 custom
-    openapiSpec,
+    openapiSpec, // 如果不存在，为 undefined（后续需要时再获取）
     config,
     status: backend.status,
     createdAt: backend.created_at,
@@ -46,18 +54,14 @@ function transformPlugin(backend: BackendPlugin): Plugin {
 
 /**
  * 转换前端 PluginForm 到后端请求格式
+ * 注意：后端序列化器只需要 openapi_spec 和 status
+ * name、description、base_url 会从 openapi_spec 中自动提取
+ * auth_config 会从 openapi_spec.auth_config 中提取（如果存在）
  */
-function transformPluginRequest(form: PluginForm): BackendPluginRequest {
-  // 从 config 中提取 baseUrl 和 auth_config
-  const { baseUrl, ...authConfig } = form.config
-
+function transformPluginRequest(form: PluginForm) {
   return {
-    name: form.name,
-    description: form.description,
     openapi_spec: form.openapiSpec,
-    base_url: baseUrl || '',
-    auth_config: authConfig,
-    status: form.status,
+    status: form.status || 'enabled',
   }
 }
 
@@ -80,28 +84,30 @@ export const pluginApi = {
 
   /**
    * 创建插件
+   * 后端只需要 openapi_spec 和 status，其他字段会自动提取
    */
   create: async (form: PluginForm): Promise<Plugin> => {
     const requestData = transformPluginRequest(form)
+    console.log('[API] 创建插件请求数据:', JSON.stringify(requestData, null, 2))
+    console.log('[API] openapi_spec:', JSON.stringify(requestData.openapi_spec, null, 2))
     const data = await request.post<BackendPlugin>('/plugins/', requestData)
     return transformPlugin(data)
   },
 
   /**
    * 更新插件
+   * 后端只需要 openapi_spec 和 status，其他字段会自动提取和更新
    */
   update: async (id: number, form: Partial<PluginForm>): Promise<Plugin> => {
-    const requestData: Partial<BackendPluginRequest> = {}
+    const requestData: any = {}
     
-    if (form.name !== undefined) requestData.name = form.name
-    if (form.description !== undefined) requestData.description = form.description
-    if (form.openapiSpec !== undefined) requestData.openapi_spec = form.openapiSpec
-    if (form.config !== undefined) {
-      const { baseUrl, ...authConfig } = form.config
-      requestData.base_url = baseUrl || ''
-      requestData.auth_config = authConfig
+    if (form.openapiSpec !== undefined) {
+      requestData.openapi_spec = form.openapiSpec
     }
-    if (form.status !== undefined) requestData.status = form.status
+    
+    if (form.status !== undefined) {
+      requestData.status = form.status
+    }
 
     const data = await request.patch<BackendPlugin>(`/plugins/${id}/`, requestData)
     return transformPlugin(data)

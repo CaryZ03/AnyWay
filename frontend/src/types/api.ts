@@ -64,7 +64,7 @@ export interface ConversationResponse {
  * 后端 Workflow 字段格式
  */
 export interface BackendWorkflow {
-  id?: number
+  id?: string
   name: string
   description?: string
   definition: {
@@ -114,6 +114,18 @@ export interface WorkflowExecutionResponse {
   created_at: string
 }
 
+/**
+ * 工作流执行历史列表项（简化版）
+ */
+export interface WorkflowExecutionListItem {
+  id: number
+  workflow: number
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  started_at?: string
+  completed_at?: string
+  created_at: string
+}
+
 // ========== Knowledge Base API 类型 ==========
 
 /**
@@ -140,18 +152,25 @@ export interface BackendKnowledgeBaseRequest {
 
 /**
  * 后端 Document 字段格式
+ * 注意：根据实际API返回，可能包含以下字段：
+ * - knowledge_base_id (Postman API) 或 knowledge_base (标准REST API)
+ * - created_at (Postman API) 或 uploaded_at (标准REST API)
  */
 export interface BackendDocument {
   id?: number
-  knowledge_base: number
+  knowledge_base?: number  // 标准REST API
+  knowledge_base_id?: number  // Postman API
   filename: string
   file_type: string
   file_size: number
   status: 'pending' | 'processing' | 'completed' | 'failed'
   error_message?: string
   chunk_count?: number
-  uploaded_at?: string
+  uploaded_at?: string  // 标准REST API
+  created_at?: string  // Postman API
+  updated_at?: string  // Postman API
   processed_at?: string
+  sha256?: string  // Postman API
 }
 
 /**
@@ -176,14 +195,15 @@ export interface SearchResult {
 
 /**
  * 后端 Plugin 字段格式
+ * 注意：list 接口可能不返回 openapi_spec，只有 retrieve 接口返回完整信息
  */
 export interface BackendPlugin {
   id?: number
   name: string
   description?: string
-  openapi_spec: string | Record<string, any>
-  base_url: string
-  auth_config: string | Record<string, any>
+  openapi_spec?: string | Record<string, any>  // 列表接口可能没有，详情接口有
+  base_url?: string  // 列表接口可能没有
+  auth_config?: string | Record<string, any>  // 列表接口可能没有
   status: 'enabled' | 'disabled'
   created_at?: string
   updated_at?: string

@@ -8,12 +8,17 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+import os
+import json
+
 from .models import Agent, Conversation
 from .serializers import (
     AgentSerializer, AgentListSerializer,
     ConversationSerializer, ChatRequestSerializer
 )
 from utils.response import ApiResponse
+from ..plugin.models import Plugin
+from ..plugin.services import build_tools_from_openapi, build_api_map
 
 
 class AgentViewSet(viewsets.ModelViewSet):
@@ -24,7 +29,7 @@ class AgentViewSet(viewsets.ModelViewSet):
     """
     queryset = Agent.objects.filter(deleted=False)
     serializer_class = AgentSerializer
-    
+
     def get_serializer_class(self):
         """根据action选择序列化器"""
         if self.action == 'list':
@@ -120,16 +125,52 @@ class AgentViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'])
     def test(self, request, pk=None):
-        """测试智能体"""
+        """测试智能体（不需要发布即可测试）"""
+        from apps.llm.services import get_llm_service
+        import logging
+        
+        logger = logging.getLogger(__name__)
         agent = self.get_object()
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user_message = serializer.validated_data['message']
         
-        # TODO: 调用LLM服务生成回复
-        # 这里先返回模拟数据
-        assistant_message = f"这是对 '{user_message}' 的测试回复"
+        try:
+            # 构建消息历史
+            messages = []
+            
+            # 添加系统提示词
+            if agent.system_prompt:
+                messages.append({
+                    'role': 'system',
+                    'content': agent.system_prompt
+                })
+            
+            # 添加用户消息
+            messages.append({
+                'role': 'user',
+                'content': user_message
+            })
+            
+            # 获取模型配置
+            model_config = agent.model_config or {}
+            model = model_config.get('model', 'doubao-seed-1-6-251015')
+            temperature = model_config.get('temperature', 0.7)
+            if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
+                model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
+            
+            # 调用LLM服务生成回复
+            llm_service = get_llm_service('volcano')
+            assistant_message = llm_service.chat(
+                messages=messages,
+                model=model,
+                temperature=temperature
+            )
+            
+        except Exception as e:
+            logger.error(f'测试LLM调用失败: {str(e)}')
+            assistant_message = f"测试失败: {str(e)}"
         
         # 保存对话记录
         conversation = Conversation.objects.create(
@@ -144,29 +185,117 @@ class AgentViewSet(viewsets.ModelViewSet):
     
     @swagger_auto_schema(
         operation_summary='与智能体对话',
-        operation_description='与已发布的智能体进行对话',
+        operation_description='与智能体进行对话（支持未发布智能体，支持插件调用）',
         request_body=ChatRequestSerializer,
         responses={200: openapi.Response('对话成功', ConversationSerializer())}
     )
     @action(detail=True, methods=['post'])
     def chat(self, request, pk=None):
-        """与智能体对话"""
-        agent = self.get_object()
+        """与智能体对话（支持未发布智能体，支持插件调用和工作流）"""
+        from apps.llm.services import get_llm_service
+        from apps.workflow.models import Workflow, WorkflowExecution
+        from apps.workflow.services import WorkflowEngine
+        import logging
         
-        # 验证智能体是否已发布
-        if agent.status != 'published':
-            return ApiResponse.error(message='智能体未发布，无法对话')
+        logger = logging.getLogger(__name__)
+        agent = self.get_object()
         
         serializer = ChatRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         user_message = serializer.validated_data['message']
-        
-        # TODO: 调用LLM服务生成回复
-        # TODO: 集成知识库检索
-        # TODO: 执行工作流
-        # TODO: 调用插件
-        assistant_message = f"这是对 '{user_message}' 的回复"
+
+        plugin_ids = agent.plugin_ids
+        active_tools = []
+        api_map = {}
+        for pid in plugin_ids:
+            try:
+                plugin = Plugin.objects.get(id=pid)
+                if plugin.status == 'enabled':
+                    # 如果 openai_spec 是 JSONField，直接用 plugin.openai_spec
+                    # 如果是 TextField 存字符串，需要 json.loads(plugin.openai_spec)
+                    spec = plugin.openapi_spec
+                    active_tools.extend(build_tools_from_openapi(spec))
+                    api_map[pid] = build_api_map(spec)
+            except Plugin.DoesNotExist:
+                continue
+
+        # 如果智能体绑定了工作流，则优先走工作流编排
+        if agent.workflow_id:
+            try:
+                workflow = Workflow.objects.get(id=agent.workflow_id, deleted=False)
+                execution = WorkflowExecution.objects.create(
+                    workflow=workflow,
+                    input_data={'user_input': user_message},
+                    status='pending',
+                )
+                engine = WorkflowEngine()
+                output = engine.execute(workflow, {'user_input': user_message}, execution)
+                # 工作流输出应该总是包含 answer 字段
+                if isinstance(output, dict):
+                    assistant_message = output.get('answer', '')
+                    if not assistant_message:
+                        # 如果 answer 为空，尝试从 output 字段获取
+                        assistant_message = output.get('output', '工作流执行完成，但未生成有效回答')
+                else:
+                    assistant_message = str(output)
+            except Workflow.DoesNotExist:
+                logger.warning(f'智能体 {agent.id} 绑定的工作流不存在，回退到直接 LLM 对话')
+            except Exception as e:
+                logger.error(f'工作流执行失败，将回退到直接 LLM 对话: {str(e)}', exc_info=True)
+
+        # 未绑定工作流，或工作流执行失败则回退到原有直连 LLM 逻辑
+        if 'assistant_message' not in locals():
+            try:
+                # 构建消息历史
+                messages = []
+                
+                # 添加系统提示词
+                if agent.system_prompt:
+                    messages.append({
+                        'role': 'system',
+                        'content': agent.system_prompt
+                    })
+                
+                # 从 Conversation 表中加载历史上下文
+                past_convs = Conversation.objects.filter(agent=agent).order_by("created_at")
+                for conv in past_convs:
+                    # 用户消息
+                    messages.append({"role": "user", "content": conv.user_message})
+                    # 助手消息
+                    messages.append({"role": "assistant", "content": conv.assistant_message})
+                
+                # 添加用户消息
+                messages.append({
+                    'role': 'user',
+                    'content': user_message
+                })
+                
+                # 获取模型配置
+                model_config = agent.model_config or {}
+                provider = model_config.get('provider', 'volcano')
+                model = model_config.get('model', 'doubao-seed-1-6-251015')
+                temperature = model_config.get('temperature', 0.7)
+                if model in ('gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'):
+                    model = os.getenv('ARK_DEFAULT_MODEL', 'doubao-seed-1-6-251015')
+                
+                logger.info(f'智能体 {agent.name} 开始对话，provider={provider}, model={model}')
+                
+                # 调用LLM服务生成回复
+                llm_service = get_llm_service(provider)
+                assistant_message = llm_service.chat(
+                    messages=messages,
+                    model=model,
+                    temperature=temperature,
+                    active_tools=active_tools,
+                    api_map=api_map
+                )
+                
+                logger.info(f'LLM回复成功，长度: {len(assistant_message)}')
+                
+            except Exception as e:
+                logger.error(f'LLM调用失败: {str(e)}', exc_info=True)
+                assistant_message = f"抱歉，发生了错误: {str(e)}"
         
         # 保存对话记录
         conversation = Conversation.objects.create(
@@ -178,3 +307,102 @@ class AgentViewSet(viewsets.ModelViewSet):
         
         conv_serializer = ConversationSerializer(conversation)
         return ApiResponse.success(data=conv_serializer.data, message='对话成功')
+
+    @swagger_auto_schema(
+        operation_summary='获取智能体对话历史',
+        operation_description='获取智能体的所有对话记录',
+        responses={200: ConversationSerializer(many=True)}
+    )
+    @action(detail=True, methods=['get'])
+    def conversations(self, request, pk=None):
+        """获取智能体的对话历史"""
+        agent = self.get_object()
+        conversations = Conversation.objects.filter(agent=agent).order_by('created_at')
+        serializer = ConversationSerializer(conversations, many=True)
+        return ApiResponse.success(data=serializer.data, message='获取对话历史成功')
+
+    @swagger_auto_schema(
+        operation_summary='为智能体添加插件',
+        operation_description='将一个或多个插件ID添加到智能体的 plugin_ids 列表中',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['plugin_ids'],
+            properties={
+                'plugin_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description='要添加的插件ID列表，也可以传单个整数'
+                )
+            }
+        ),
+        responses={200: AgentSerializer()}
+    )
+    @action(detail=True, methods=['post'])
+    def add_plugins(self, request, pk=None):
+        """给智能体添加一个或多个插件"""
+        agent = self.get_object()
+        plugin_ids = request.data.get('plugin_ids')
+
+        if plugin_ids is None:
+            return ApiResponse.error(message='plugin_ids 必填')
+
+        # 如果前端传的是单个整数，转换为列表
+        if isinstance(plugin_ids, int):
+            plugin_ids = [plugin_ids]
+        elif not isinstance(plugin_ids, list):
+            return ApiResponse.error(message='plugin_ids 必须是整数或整数列表')
+
+        # 初始化 plugin_ids
+        current_ids = agent.plugin_ids or []
+
+        # 去重并添加
+        for pid in plugin_ids:
+            if pid not in current_ids:
+                current_ids.append(pid)
+
+        agent.plugin_ids = current_ids
+        agent.save()
+
+        serializer = self.get_serializer(agent)
+        return ApiResponse.success(data=serializer.data, message='插件添加成功')
+
+    @swagger_auto_schema(
+        operation_summary='从智能体删除插件',
+        operation_description='将一个或多个插件ID从智能体的 plugin_ids 列表中移除',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['plugin_ids'],
+            properties={
+                'plugin_ids': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description='要删除的插件ID列表，也可以传单个整数'
+                )
+            }
+        ),
+        responses={200: AgentSerializer()}
+    )
+    @action(detail=True, methods=['post'])
+    def remove_plugins(self, request, pk=None):
+        """从智能体删除一个或多个插件"""
+        agent = self.get_object()
+        plugin_ids = request.data.get('plugin_ids')
+
+        if plugin_ids is None:
+            return ApiResponse.error(message='plugin_ids 必填')
+
+        # 如果前端传的是单个整数，转换为列表
+        if isinstance(plugin_ids, int):
+            plugin_ids = [plugin_ids]
+        elif not isinstance(plugin_ids, list):
+            return ApiResponse.error(message='plugin_ids 必须是整数或整数列表')
+
+        # 当前插件列表
+        current_ids = agent.plugin_ids or []
+
+        # 移除指定ID
+        agent.plugin_ids = [pid for pid in current_ids if pid not in plugin_ids]
+        agent.save()
+
+        serializer = self.get_serializer(agent)
+        return ApiResponse.success(data=serializer.data, message='插件删除成功')

@@ -45,20 +45,21 @@ function transformAgent(backend: BackendAgent): Agent {
 
 /**
  * 转换前端 AgentForm 到后端请求格式
+ * 注意：此函数暂未使用，保留供未来使用
  */
-function transformAgentRequest(form: AgentForm): BackendAgentRequest {
-  return {
-    name: form.name,
-    description: form.description,
-    system_prompt: form.systemPrompt,
-    user_prompt_template: form.userPromptTemplate,
-    model_config: form.modelConfig,
-    workflow_id: form.workflowId,
-    knowledge_base_ids: form.knowledgeBaseIds,
-    plugin_ids: form.pluginIds,
-    status: form.status,
-  }
-}
+// function transformAgentRequest(form: AgentForm): BackendAgentRequest {
+//   return {
+//     name: form.name,
+//     description: form.description,
+//     system_prompt: form.systemPrompt,
+//     user_prompt_template: form.userPromptTemplate,
+//     model_config: form.modelConfig,
+//     workflow_id: form.workflowId,
+//     knowledge_base_ids: form.knowledgeBaseIds,
+//     plugin_ids: form.pluginIds,
+//     status: form.status,
+//   }
+// }
 
 export const agentApi = {
   /**
@@ -80,8 +81,25 @@ export const agentApi = {
   /**
    * 创建智能体
    */
-  create: async (form: AgentForm): Promise<Agent> => {
-    const requestData = transformAgentRequest(form)
+  create: async (form: Partial<AgentForm> | any): Promise<Agent> => {
+    const requestData: any = {}
+    if ('name' in form) requestData.name = form.name
+    if ('description' in form) requestData.description = form.description
+    if ('systemPrompt' in form) requestData.system_prompt = form.systemPrompt
+    if ('system_prompt' in form) requestData.system_prompt = form.system_prompt
+    if ('userPromptTemplate' in form) requestData.user_prompt_template = form.userPromptTemplate
+    if ('modelConfig' in form) requestData.model_config = form.modelConfig
+    if ('model_config' in form) requestData.model_config = form.model_config
+    if ('workflowId' in form) requestData.workflow_id = form.workflowId
+    if ('knowledgeBaseIds' in form) requestData.knowledge_base_ids = form.knowledgeBaseIds
+    if ('pluginIds' in form) requestData.plugin_ids = form.pluginIds
+    if ('status' in form) requestData.status = form.status
+    
+    // 设置默认值
+    if (!requestData.user_prompt_template) requestData.user_prompt_template = ''
+    if (!requestData.knowledge_base_ids) requestData.knowledge_base_ids = []
+    if (!requestData.plugin_ids) requestData.plugin_ids = []
+    
     const data = await request.post<BackendAgent>('/agents/', requestData)
     return transformAgent(data)
   },
@@ -135,6 +153,35 @@ export const agentApi = {
   chat: async (id: number, message: string, context?: Record<string, any>): Promise<ConversationResponse> => {
     const requestData: ChatRequest = { message, context }
     return await request.post<ConversationResponse>(`/agents/${id}/chat/`, requestData)
+  },
+
+  /**
+   * 为智能体添加插件
+   */
+  addPlugins: async (id: number, pluginIds: number | number[]): Promise<Agent> => {
+    const requestData = {
+      plugin_ids: Array.isArray(pluginIds) ? pluginIds : [pluginIds]
+    }
+    const data = await request.post<BackendAgent>(`/agents/${id}/add_plugins/`, requestData)
+    return transformAgent(data)
+  },
+
+  /**
+   * 从智能体删除插件
+   */
+  removePlugins: async (id: number, pluginIds: number | number[]): Promise<Agent> => {
+    const requestData = {
+      plugin_ids: Array.isArray(pluginIds) ? pluginIds : [pluginIds]
+    }
+    const data = await request.post<BackendAgent>(`/agents/${id}/remove_plugins/`, requestData)
+    return transformAgent(data)
+  },
+
+  /**
+   * 获取智能体对话历史
+   */
+  getConversations: async (id: number): Promise<ConversationResponse[]> => {
+    return await request.get<ConversationResponse[]>(`/agents/${id}/conversations/`)
   },
 }
 

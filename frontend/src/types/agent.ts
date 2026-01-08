@@ -6,6 +6,7 @@
  * 模型配置
  */
 export interface ModelConfig {
+  provider?: 'volcano' | 'openai'
   model?: string
   temperature?: number
   maxTokens?: number
